@@ -1,0 +1,166 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Learning progress
+  progress     LearningProgress[]
+  conversations Conversation[]
+  lessons      UserLesson[]
+  achievements UserAchievement[]
+
+  // User preferences
+  preferences UserPreferences?
+
+  @@map("users")
+}
+
+// Learning Progress Models
+model LearningProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  language    String
+  level       String
+  score       Float
+  completedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("learning_progress")
+}
+
+model Lesson {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  content     Json
+  language    String
+  level       String
+  category    String
+  duration    Int? // in minutes
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userLessons UserLesson[]
+
+  @@map("lessons")
+}
+
+model UserLesson {
+  id        String   @id @default(cuid())
+  userId    String
+  lessonId  String
+  status    String   @default("not_started") // not_started, in_progress, completed
+  score     Float?
+  startedAt DateTime?
+  completedAt DateTime?
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@map("user_lessons")
+}
+
+model Conversation {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String?
+  messages  Json
+  language  String
+  level     String
+  duration  Int? // in seconds
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("conversations")
+}
+
+model Achievement {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  icon        String?
+  category    String
+  points      Int
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String     @id @default(cuid())
+  userId        String
+  achievementId  String
+  earnedAt      DateTime   @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+model UserPreferences {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  language        String   @default("en")
+  targetLanguage  String
+  learningLevel   String   @default("beginner")
+  dailyGoal       Int      @default(15) // minutes
+  notifications   Json     @default("{}")
+  privacy         Json     @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+// AI Integration Models
+model AISession {
+  id          String   @id @default(cuid())
+  userId      String
+  sessionType String   // conversation, pronunciation, grammar
+  data        Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("ai_sessions")
+}
+
+model PronunciationAnalysis {
+  id          String   @id @default(cuid())
+  userId      String
+  audioUrl    String
+  text        String
+  score       Float
+  feedback    Json
+  createdAt   DateTime @default(now())
+
+  @@map("pronunciation_analysis")
+}
