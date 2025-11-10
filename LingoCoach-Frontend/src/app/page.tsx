@@ -1,6 +1,9 @@
 import { BookOpen, MessageCircle, Mic, Brain } from "lucide-react"
+import { usePWA } from "../lib/pwa"
 
 export default function Home() {
+  usePWA()
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
