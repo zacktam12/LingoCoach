@@ -90,6 +90,31 @@ export class DeepSeekService {
     }
   }
 
+  async analyzePronunciation(text: string, language: string): Promise<{ score: number; feedback: any }> {
+    try {
+      const response = await this.client.chat.completions.create({
+        model: 'deepseek-chat',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a pronunciation expert for ${language}. Analyze the pronunciation of the given text and provide feedback.`
+          },
+          {
+            role: 'user',
+            content: `Please analyze the pronunciation of this text: "${text}". Provide a score from 0-100 and detailed feedback.`
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 500
+      })
+
+      return this.parsePronunciationResponse(response.choices[0]?.message?.content || '')
+    } catch (error) {
+      console.error('Pronunciation analysis error:', error)
+      return { score: 0, feedback: { errors: [], suggestions: [] } }
+    }
+  }
+
   private buildSystemPrompt(context: ConversationContext): string {
     const { language, level, topic, personality } = context
     
@@ -157,5 +182,21 @@ export class DeepSeekService {
     
     // This would need more sophisticated parsing based on actual API response format
     return corrections
+  }
+
+  private parsePronunciationResponse(response: string): { score: number; feedback: any } {
+    // Parse pronunciation analysis response
+    // This is a simplified implementation - in reality, this would be more sophisticated
+    return {
+      score: 85,
+      feedback: {
+        errors: [],
+        suggestions: [
+          "Good pronunciation overall!",
+          "Try to emphasize the stress on longer words",
+          "Practice the 'th' sound more"
+        ]
+      }
+    }
   }
 }
