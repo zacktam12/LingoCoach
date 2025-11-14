@@ -67,4 +67,55 @@ router.put('/profile', authenticateToken, async (req: AuthRequest, res: Response
   }
 })
 
+// Get user preferences
+router.get('/preferences', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+
+    const preferences = await prisma.userPreferences.findUnique({
+      where: { userId }
+    })
+
+    res.json({ preferences })
+  } catch (error) {
+    console.error('Get preferences error:', error)
+    res.status(500).json({ error: 'Failed to fetch preferences' })
+  }
+})
+
+// Update user preferences
+router.put('/preferences', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const { language, targetLanguage, learningLevel, dailyGoal, notifications, privacy } = req.body
+
+    const preferences = await prisma.userPreferences.upsert({
+      where: { userId },
+      update: {
+        ...(language && { language }),
+        ...(targetLanguage && { targetLanguage }),
+        ...(learningLevel && { learningLevel }),
+        ...(dailyGoal && { dailyGoal }),
+        ...(notifications && { notifications }),
+        ...(privacy && { privacy }),
+        updatedAt: new Date()
+      },
+      create: {
+        userId,
+        language: language || 'en',
+        targetLanguage: targetLanguage || 'es',
+        learningLevel: learningLevel || 'beginner',
+        dailyGoal: dailyGoal || 15,
+        notifications: notifications || {},
+        privacy: privacy || {}
+      }
+    })
+
+    res.json({ preferences })
+  } catch (error) {
+    console.error('Update preferences error:', error)
+    res.status(500).json({ error: 'Failed to update preferences' })
+  }
+})
+
 export { router as userRoutes }
