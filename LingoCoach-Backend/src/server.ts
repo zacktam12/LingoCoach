@@ -12,6 +12,7 @@ import { conversationRoutes } from './routes/conversations'
 import { lessonRoutes } from './routes/lessons'
 import { dashboardRoutes } from './routes/dashboard'
 import { userRoutes } from './routes/users'
+import { pronunciationRoutes } from './routes/pronunciation'
 
 dotenv.config()
 
@@ -47,6 +48,7 @@ app.use('/api/conversations', conversationRoutes)
 app.use('/api/lessons', lessonRoutes)
 app.use('/api/dashboard', dashboardRoutes)
 app.use('/api/users', userRoutes)
+app.use('/api/pronunciation', pronunciationRoutes)
 
 // WebSocket for real-time conversations
 io.on('connection', (socket) => {
