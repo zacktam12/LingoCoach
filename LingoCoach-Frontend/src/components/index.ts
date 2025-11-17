@@ -1,1 +1,6 @@
 export { default as PWAInstaller } from './PWAInstaller'
+export { default as Navigation } from './Navigation'
+export { default as ProtectedRoute } from './ProtectedRoute'
+export { default as PronunciationPractice } from './PronunciationPractice'
+export { default as UserProfile } from './UserProfile'
+export { default as Achievements } from './Achievements'
