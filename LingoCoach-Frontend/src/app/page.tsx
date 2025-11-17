@@ -1,4 +1,5 @@
-import { BookOpen, MessageCircle, Mic, Brain } from "lucide-react"
+import { BookOpen, MessageCircle, Mic, Brain, Trophy, Target } from "lucide-react"
+import Link from "next/link"
 
 export default function Home() {
   return (
@@ -11,12 +12,12 @@ export default function Home() {
             <span className="text-2xl font-bold text-gray-900 dark:text-white">LingoCoach</span>
           </div>
           <div className="flex items-center space-x-4">
-            <button className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
+            <Link href="/auth/signin" className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
               Sign In
-            </button>
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+            </Link>
+            <Link href="/auth/signup" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
               Get Started
-            </button>
+            </Link>
           </div>
         </nav>
       </header>
@@ -33,39 +34,55 @@ export default function Home() {
             real-time feedback, and adaptive learning paths designed just for you.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="px-8 py-4 bg-blue-600 text-white text-lg rounded-md hover:bg-blue-700">
+            <Link href="/auth/signup" className="px-8 py-4 bg-blue-600 text-white text-lg rounded-md hover:bg-blue-700">
               Start Learning Free
-            </button>
-            <button className="px-8 py-4 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-lg rounded-md hover:bg-gray-50 dark:hover:bg-gray-800">
-              Watch Demo
-            </button>
+            </Link>
+            <Link href="#features" className="px-8 py-4 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-lg rounded-md hover:bg-gray-50 dark:hover:bg-gray-800">
+              Explore Features
+            </Link>
           </div>
         </div>
 
         {/* Features Grid */}
-        <div className="mt-24 grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-          <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
-            <MessageCircle className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              AI Conversations
-            </h3>
-            <p className="text-gray-600 dark:text-gray-300">
-              Practice with intelligent AI tutors that adapt to your learning level
-            </p>
-          </div>
+        <div id="features" className="mt-24 grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <Link href="/lessons" className="block group">
+            <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform group-hover:-translate-y-1">
+              <BookOpen className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                Interactive Lessons
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                Practice with structured lessons tailored to your level and goals
+              </p>
+            </div>
+          </Link>
+
+          <Link href="/conversations" className="block group">
+            <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform group-hover:-translate-y-1">
+              <MessageCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                AI Conversations
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                Practice speaking with intelligent AI tutors that adapt to your level
+              </p>
+            </div>
+          </Link>
+
+          <Link href="/pronunciation" className="block group">
+            <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform group-hover:-translate-y-1">
+              <Mic className="h-12 w-12 text-purple-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                Pronunciation Analysis
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                Get real-time feedback on your pronunciation and speaking skills
+              </p>
+            </div>
+          </Link>
 
           <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
-            <Mic className="h-12 w-12 text-green-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              Pronunciation Analysis
-            </h3>
-            <p className="text-gray-600 dark:text-gray-300">
-              Get real-time feedback on your pronunciation and speaking skills
-            </p>
-          </div>
-
-          <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
-            <BookOpen className="h-12 w-12 text-purple-600 mx-auto mb-4" />
+            <Target className="h-12 w-12 text-orange-600 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
               Adaptive Learning
             </h3>
@@ -74,8 +91,20 @@ export default function Home() {
             </p>
           </div>
 
+          <Link href="/achievements" className="block group">
+            <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform group-hover:-translate-y-1">
+              <Trophy className="h-12 w-12 text-yellow-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                Achievement System
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                Track your progress and earn badges as you learn
+              </p>
+            </div>
+          </Link>
+
           <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
-            <Brain className="h-12 w-12 text-orange-600 mx-auto mb-4" />
+            <Brain className="h-12 w-12 text-red-600 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
               Smart Analytics
             </h3>
@@ -93,9 +122,9 @@ export default function Home() {
           <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">
             Join thousands of learners already mastering new languages with LingoCoach
           </p>
-          <button className="px-8 py-4 bg-blue-600 text-white text-lg rounded-md hover:bg-blue-700">
+          <Link href="/auth/signup" className="px-8 py-4 bg-blue-600 text-white text-lg rounded-md hover:bg-blue-700">
             Begin Learning Now
-          </button>
+          </Link>
         </div>
       </main>
 
