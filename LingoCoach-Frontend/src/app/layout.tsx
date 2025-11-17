@@ -2,6 +2,7 @@ import './globals.css'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { PWAInstaller } from '../components'
+import Navigation from '../components/Navigation'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -38,7 +39,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        {children}
+        <Navigation />
+        <main>{children}</main>
         <PWAInstaller />
       </body>
     </html>
