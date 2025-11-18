@@ -48,6 +48,21 @@ export const authAPI = {
   me: () => api.get('/api/auth/me'),
 }
 
+export const userAPI = {
+  getProfile: () => api.get('/api/users/profile'),
+  updateProfile: (data: { name?: string; image?: string }) =>
+    api.put('/api/users/profile', data),
+  getPreferences: () => api.get('/api/users/preferences'),
+  updatePreferences: (data: {
+    language?: string;
+    targetLanguage?: string;
+    learningLevel?: string;
+    dailyGoal?: number;
+    notifications?: any;
+    privacy?: any;
+  }) => api.put('/api/users/preferences', data),
+}
+
 export const conversationAPI = {
   sendMessage: (data: {
     message: string
@@ -73,9 +88,20 @@ export const lessonAPI = {
   }) => api.post('/api/lessons/complete', data),
 }
 
+export const pronunciationAPI = {
+  analyze: (data: {
+    audioUrl: string
+    text: string
+    language: string
+  }) => api.post('/api/pronunciation/analyze', data),
+  getHistory: () => api.get('/api/pronunciation/history'),
+}
+
 export const dashboardAPI = {
   getStats: () => api.get('/api/dashboard/stats'),
   getProgress: () => api.get('/api/dashboard/progress'),
+  getAchievements: () => api.get('/api/dashboard/achievements'),
+  getAllAchievements: () => api.get('/api/dashboard/achievements/all'),
 }
 
 export default api
