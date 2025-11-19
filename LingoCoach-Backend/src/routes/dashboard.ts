@@ -78,4 +78,39 @@ router.get('/progress', authenticateToken, async (req: AuthRequest, res: Respons
   }
 })
 
+// Get user achievements
+router.get('/achievements', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+
+    const achievements = await prisma.userAchievement.findMany({
+      where: { userId },
+      include: {
+        achievement: true
+      },
+      orderBy: { earnedAt: 'desc' }
+    })
+
+    res.json({ achievements })
+  } catch (error) {
+    console.error('Get achievements error:', error)
+    res.status(500).json({ error: 'Failed to fetch achievements' })
+  }
+})
+
+// Get all available achievements
+router.get('/achievements/all', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const achievements = await prisma.achievement.findMany({
+      where: { isActive: true },
+      orderBy: { points: 'desc' }
+    })
+
+    res.json({ achievements })
+  } catch (error) {
+    console.error('Get all achievements error:', error)
+    res.status(500).json({ error: 'Failed to fetch achievements' })
+  }
+})
+
 export { router as dashboardRoutes }
