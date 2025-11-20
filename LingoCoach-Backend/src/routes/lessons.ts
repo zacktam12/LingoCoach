@@ -57,6 +57,15 @@ router.post('/complete', authenticateToken, async (req: AuthRequest, res: Respon
     const { lessonId, score, timeSpent } = req.body
     const userId = req.user!.id
 
+    // Get the lesson to retrieve language and level
+    const lesson = await prisma.lesson.findUnique({
+      where: { id: lessonId }
+    })
+
+    if (!lesson) {
+      return res.status(404).json({ error: 'Lesson not found' })
+    }
+
     // Update user lesson
     const userLesson = await prisma.userLesson.upsert({
       where: {
@@ -83,8 +92,8 @@ router.post('/complete', authenticateToken, async (req: AuthRequest, res: Respon
     await prisma.learningProgress.create({
       data: {
         userId,
-        language: 'en', // Get from lesson
-        level: 'beginner', // Get from lesson
+        language: lesson.language,
+        level: lesson.level,
         score
       }
     })
