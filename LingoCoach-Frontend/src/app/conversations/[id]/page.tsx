@@ -29,16 +29,22 @@ export default function ConversationDetail({ params }: { params: { id: string } 
       setLoading(true)
       const response = await conversationAPI.getConversation(params.id)
       setConversation(response.data.conversation)
-      // In a real app, you would parse the messages from the conversation object
-      // For now, we'll use a sample conversation
-      setMessages([
-        {
-          id: 1,
-          role: 'assistant',
-          content: 'Hello! I\'m your AI language tutor. What would you like to practice today?',
-          timestamp: new Date()
-        }
-      ])
+      
+      // Parse messages from the conversation object
+      if (response.data.conversation.messages) {
+        // Assuming messages is an array of message objects
+        setMessages(response.data.conversation.messages)
+      } else {
+        // Fallback to sample conversation if no messages exist
+        setMessages([
+          {
+            id: 1,
+            role: 'assistant',
+            content: 'Hello! I\'m your AI language tutor. What would you like to practice today?',
+            timestamp: new Date()
+          }
+        ])
+      }
     } catch (err) {
       setError('Failed to load conversation')
       console.error('Fetch conversation error:', err)
@@ -136,7 +142,7 @@ export default function ConversationDetail({ params }: { params: { id: string } 
               <div className="space-y-4">
                 {messages.map((message) => (
                   <div
-                    key={message.id}
+                    key={message.id || message.timestamp}
                     className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
