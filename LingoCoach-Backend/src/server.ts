@@ -13,6 +13,7 @@ import { lessonRoutes } from './routes/lessons'
 import { dashboardRoutes } from './routes/dashboard'
 import { userRoutes } from './routes/users'
 import { pronunciationRoutes } from './routes/pronunciation'
+import path from 'path'
 
 dotenv.config()
 
@@ -36,6 +37,9 @@ app.use(cors({
 app.use(morgan('combined'))
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true }))
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')))
 
 // Health check
 app.get('/health', (req, res) => {
