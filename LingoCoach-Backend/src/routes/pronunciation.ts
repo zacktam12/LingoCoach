@@ -37,6 +37,11 @@ const upload = multer({
   }
 })
 
+// Health check endpoint
+router.get('/health', (req: Request, res: Response) => {
+  res.json({ status: 'Pronunciation service is running' })
+})
+
 // Analyze pronunciation
 router.post('/analyze', authenticateToken, upload.single('audio'), async (req: AuthRequest, res: Response) => {
   try {
@@ -77,9 +82,9 @@ router.post('/analyze', authenticateToken, upload.single('audio'), async (req: A
       feedback: analysisResult.feedback
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Pronunciation analysis error:', error)
-    res.status(500).json({ error: 'Failed to analyze pronunciation' })
+    res.status(500).json({ error: 'Failed to analyze pronunciation', details: error.message })
   }
 })
 
