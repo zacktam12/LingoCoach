@@ -2,11 +2,10 @@
 
 import { useState, useRef } from 'react'
 import { Mic, MicOff, Play, Square, RotateCcw } from 'lucide-react'
-import { pronunciationAPI } from '@/lib/api'
 
 export default function PronunciationPractice() {
   const [isRecording, setIsRecording] = useState(false)
-  const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
   const [text, setText] = useState('')
   const [language, setLanguage] = useState('en')
   const [score, setScore] = useState<number | null>(null)
@@ -29,11 +28,12 @@ export default function PronunciationPractice() {
 
       mediaRecorderRef.current.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-        const audioUrl = URL.createObjectURL(audioBlob)
-        setAudioUrl(audioUrl)
+        setAudioBlob(audioBlob)
         
-        // In a real app, you would upload the audio file to a server
-        // and get a URL to pass to the API
+        // Create a preview URL for playback
+        const audioUrl = URL.createObjectURL(audioBlob)
+        const audio = new Audio(audioUrl)
+        // You can use this audio object for playback if needed
       }
 
       mediaRecorderRef.current.start()
@@ -56,7 +56,7 @@ export default function PronunciationPractice() {
   }
 
   const analyzePronunciation = async () => {
-    if (!audioUrl || !text) {
+    if (!audioBlob || !text) {
       setError('Please record audio and enter text to analyze')
       return
     }
@@ -65,16 +65,30 @@ export default function PronunciationPractice() {
       setIsAnalyzing(true)
       setError(null)
       
-      // In a real implementation, you would upload the audio file to your server
-      // and get a permanent URL. For now, we'll use a placeholder.
-      const response = await pronunciationAPI.analyze({
-        audioUrl: 'placeholder-audio-url', // This would be the actual uploaded file URL
-        text,
-        language
+      // Create FormData to send the audio file
+      const formData = new FormData()
+      formData.append('audio', audioBlob, 'recording.webm')
+      formData.append('text', text)
+      formData.append('language', language)
+      
+      // Make API call with FormData
+      const response = await fetch('/api/pronunciation/analyze', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          // Note: Don't set Content-Type header when using FormData
+          // The browser will set it with the correct boundary
+        }
       })
       
-      setScore(response.score)
-      setFeedback(response.feedback)
+      if (!response.ok) {
+        throw new Error('Failed to analyze pronunciation')
+      }
+      
+      const data = await response.json()
+      
+      setScore(data.score)
+      setFeedback(data.feedback)
     } catch (err) {
       setError('Failed to analyze pronunciation. Please try again.')
       console.error('Analysis error:', err)
@@ -85,7 +99,7 @@ export default function PronunciationPractice() {
 
   const resetPractice = () => {
     setIsRecording(false)
-    setAudioUrl(null)
+    setAudioBlob(null)
     setText('')
     setScore(null)
     setFeedback(null)
@@ -173,15 +187,15 @@ export default function PronunciationPractice() {
             </div>
           )}
           
-          {audioUrl && (
+          {audioBlob && (
             <div className="flex items-center space-x-2">
-              <audio src={audioUrl} controls className="w-64" />
+              <audio src={URL.createObjectURL(audioBlob)} controls className="w-64" />
             </div>
           )}
         </div>
         
         {/* Analyze Button */}
-        {audioUrl && text && (
+        {audioBlob && text && (
           <button
             onClick={analyzePronunciation}
             disabled={isAnalyzing}
@@ -210,7 +224,7 @@ export default function PronunciationPractice() {
               <div className="space-y-2">
                 <h4 className="font-medium text-blue-800 dark:text-blue-200">Feedback:</h4>
                 <ul className="list-disc pl-5 space-y-1">
-                  {feedback.suggestions.map((suggestion: string, index: number) => (
+                  {feedback.suggestions && feedback.suggestions.map((suggestion: string, index: number) => (
                     <li key={index} className="text-blue-700 dark:text-blue-300">
                       {suggestion}
                     </li>
