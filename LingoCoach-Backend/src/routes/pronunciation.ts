@@ -4,6 +4,8 @@ import { DeepSeekService } from '../services/ai'
 import { prisma } from '../lib/database'
 import multer from 'multer'
 import { v4 as uuidv4 } from 'uuid'
+import path from 'path'
+import fs from 'fs'
 
 interface AuthRequest extends Request {
   user?: {
@@ -32,14 +34,14 @@ const upload = multer({
     if (file.mimetype.startsWith('audio/')) {
       cb(null, true)
     } else {
-      cb(new Error('Only audio files are allowed'))
+      cb(new Error('Only audio files are allowed') as any)
     }
   }
 })
 
 // Health check endpoint
 router.get('/health', (req: Request, res: Response) => {
-  res.json({ status: 'Pronunciation service is running' })
+  res.json({ status: 'Pronunciation service is running', timestamp: new Date().toISOString() })
 })
 
 // Analyze pronunciation
@@ -57,13 +59,19 @@ router.post('/analyze', authenticateToken, upload.single('audio'), async (req: A
       return res.status(400).json({ error: 'Text is required' })
     }
 
+    // Validate language parameter
+    const supportedLanguages = ['en', 'es', 'fr', 'de', 'it', 'pt']
+    if (language && !supportedLanguages.includes(language)) {
+      return res.status(400).json({ error: 'Unsupported language' })
+    }
+
     // In a real implementation, we would:
     // 1. Use a speech-to-text service to transcribe the audio
     // 2. Compare the transcription with the provided text
     // 3. Use AI to analyze pronunciation accuracy
     
     // For now, we'll simulate the analysis
-    const analysisResult = await deepseek.analyzePronunciation(text, language)
+    const analysisResult = await deepseek.analyzePronunciation(text, language || 'en')
     
     // Save analysis to database
     const pronunciationAnalysis = await prisma.pronunciationAnalysis.create({
@@ -91,8 +99,10 @@ router.post('/analyze', authenticateToken, upload.single('audio'), async (req: A
 // Get user's pronunciation history
 router.get('/history', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
+    const userId = req.user!.id
+    
     const analyses = await prisma.pronunciationAnalysis.findMany({
-      where: { userId: req.user!.id },
+      where: { userId: userId },
       orderBy: { createdAt: 'desc' },
       take: 20
     })
