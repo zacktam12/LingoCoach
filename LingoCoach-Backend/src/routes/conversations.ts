@@ -13,16 +13,26 @@ interface AuthRequest extends Request {
 const router = Router()
 const deepseek = new DeepSeekService(process.env.DEEPSEEK_API_KEY!)
 
+// Health check endpoint
+router.get('/health', (req: Request, res: Response) => {
+  res.json({ status: 'Conversations service is running', timestamp: new Date().toISOString() })
+})
+
 // Send message to AI
 router.post('/', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const { message, conversationId, language, level } = req.body
     const userId = req.user!.id
 
+    // Validate input
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' })
+    }
+
     // Generate AI response
     const aiResponse = await deepseek.generateConversation(
       [{ role: 'user', content: message }],
-      { language, level }
+      { language: language || 'en', level: level || 'beginner' }
     )
 
     // Save or update conversation
@@ -34,12 +44,13 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response) => {
             { role: 'user', content: message, timestamp: new Date() },
             { role: 'assistant', content: aiResponse.content, timestamp: new Date() }
           ]
-        }
+        },
+        updatedAt: new Date()
       },
       create: {
         userId,
-        language,
-        level,
+        language: language || 'en',
+        level: level || 'beginner',
         messages: [
           { role: 'user', content: message, timestamp: new Date() },
           { role: 'assistant', content: aiResponse.content, timestamp: new Date() }
