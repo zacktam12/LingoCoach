@@ -11,6 +11,11 @@ interface AuthRequest extends Request {
 
 const router = Router()
 
+// Health check endpoint
+router.get('/health', (req: Request, res: Response) => {
+  res.json({ status: 'Lessons service is running', timestamp: new Date().toISOString() })
+})
+
 // Get lessons
 router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
@@ -56,6 +61,11 @@ router.post('/complete', authenticateToken, async (req: AuthRequest, res: Respon
   try {
     const { lessonId, score, timeSpent } = req.body
     const userId = req.user!.id
+
+    // Validate input
+    if (!lessonId || score === undefined) {
+      return res.status(400).json({ error: 'lessonId and score are required' })
+    }
 
     // Get the lesson to retrieve language and level
     const lesson = await prisma.lesson.findUnique({
