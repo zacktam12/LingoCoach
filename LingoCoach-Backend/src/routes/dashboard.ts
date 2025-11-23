@@ -11,6 +11,11 @@ interface AuthRequest extends Request {
 
 const router = Router()
 
+// Health check endpoint
+router.get('/health', (req: Request, res: Response) => {
+  res.json({ status: 'Dashboard service is running', timestamp: new Date().toISOString() })
+})
+
 // Get dashboard stats
 router.get('/stats', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
