@@ -11,6 +11,11 @@ interface AuthRequest extends Request {
 
 const router = Router()
 
+// Health check endpoint
+router.get('/health', (req: Request, res: Response) => {
+  res.json({ status: 'User service is running', timestamp: new Date().toISOString() })
+})
+
 // Get user profile
 router.get('/profile', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
@@ -44,6 +49,11 @@ router.put('/profile', authenticateToken, async (req: AuthRequest, res: Response
   try {
     const userId = req.user!.id
     const { name, image } = req.body
+
+    // Validate input
+    if (!name && !image) {
+      return res.status(400).json({ error: 'Name or image is required' })
+    }
 
     const user = await prisma.user.update({
       where: { id: userId },
@@ -88,6 +98,11 @@ router.put('/preferences', authenticateToken, async (req: AuthRequest, res: Resp
   try {
     const userId = req.user!.id
     const { language, targetLanguage, learningLevel, dailyGoal, notifications, privacy } = req.body
+
+    // Validate input
+    if (!language && !targetLanguage && !learningLevel && !dailyGoal && !notifications && !privacy) {
+      return res.status(400).json({ error: 'At least one preference field is required' })
+    }
 
     const preferences = await prisma.userPreferences.upsert({
       where: { userId },
