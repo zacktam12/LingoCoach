@@ -13,8 +13,8 @@ export const metadata: Metadata = {
   themeColor: '#3b82f6',
   viewport: 'minimum-scale=1, initial-scale=1, width=device-width, shrink-to-fit=no, viewport-fit=cover',
   icons: {
-    icon: '/icons/icon-192x192.png',
-    apple: '/icons/apple-touch-icon.png',
+    icon: '/icons/icon-192x192.svg',
+    apple: '/icons/apple-touch-icon.svg',
   },
   appleWebApp: {
     capable: true,

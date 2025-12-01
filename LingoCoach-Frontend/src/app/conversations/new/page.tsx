@@ -18,17 +18,17 @@ export default function NewConversation() {
       setLoading(true)
       setError(null)
       
-      // In a real app, you would create a new conversation with these settings
-      // For now, we'll just redirect to a sample conversation
       const response = await conversationAPI.sendMessage({
         message: `Hello! Let's talk about ${topic || 'general topics'}.`,
         language,
-        level
+        level,
       })
-      
-      // Redirect to the new conversation
-      // In a real app, you would get the conversation ID from the response
-      router.push('/conversations/sample')
+
+      if (response.data.conversationId) {
+        router.push(`/conversations/${response.data.conversationId}`)
+      } else {
+        setError('Could not retrieve conversation ID.')
+      }
     } catch (err) {
       setError('Failed to start conversation')
       console.error('Start conversation error:', err)
