@@ -17,9 +17,15 @@ interface AuthRequest extends Request {
 const router = Router()
 const deepseek = new DeepSeekService(process.env.DEEPSEEK_API_KEY!)
 
+// Ensure uploads directory exists
+const uploadDir = path.join(__dirname, '../../uploads')
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true })
+}
+
 // Configure multer for file uploads
 const storage = multer.diskStorage({
-  destination: 'uploads/',
+  destination: uploadDir,
   filename: function (req, file, cb) {
     cb(null, uuidv4() + '-' + file.originalname)
   }

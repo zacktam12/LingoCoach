@@ -1,14 +1,32 @@
 import { Router } from 'express'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import Joi from 'joi'
 import { prisma } from '../lib/database'
 
 const router = Router()
 
+const registerSchema = Joi.object({
+  email: Joi.string().email().required(),
+  password: Joi.string().min(8).max(128).required(),
+  name: Joi.string().max(100).allow(null, '')
+})
+
+const loginSchema = Joi.object({
+  email: Joi.string().email().required(),
+  password: Joi.string().required()
+})
+
 // Register
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, name } = req.body
+    const { error, value } = registerSchema.validate(req.body)
+
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message })
+    }
+
+    const { email, password, name } = value
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
@@ -27,7 +45,7 @@ router.post('/register', async (req, res) => {
       data: {
         email,
         name,
-        // Note: In a real app, you'd store hashedPassword in a separate field
+        passwordHash: hashedPassword
       }
     })
 
@@ -56,7 +74,13 @@ router.post('/register', async (req, res) => {
 // Login
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body
+    const { error, value } = loginSchema.validate(req.body)
+
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message })
+    }
+
+    const { email, password } = value
 
     // Find user
     const user = await prisma.user.findUnique({
@@ -67,11 +91,15 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' })
     }
 
-    // In a real app, you'd verify the password here
-    // const isValidPassword = await bcrypt.compare(password, user.hashedPassword)
-    // if (!isValidPassword) {
-    //   return res.status(401).json({ error: 'Invalid credentials' })
-    // }
+    if (!user.passwordHash) {
+      return res.status(401).json({ error: 'Invalid credentials' })
+    }
+
+    const isValidPassword = await bcrypt.compare(password, user.passwordHash)
+
+    if (!isValidPassword) {
+      return res.status(401).json({ error: 'Invalid credentials' })
+    }
 
     // Generate JWT
     const token = jwt.sign(

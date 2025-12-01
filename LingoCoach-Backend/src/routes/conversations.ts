@@ -35,28 +35,35 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response) => {
       { language: language || 'en', level: level || 'beginner' }
     )
 
-    // Save or update conversation
-    const conversation = await prisma.conversation.upsert({
-      where: { id: conversationId || 'new' },
-      update: {
-        messages: {
-          push: [
-            { role: 'user', content: message, timestamp: new Date() },
-            { role: 'assistant', content: aiResponse.content, timestamp: new Date() }
-          ]
-        },
-        updatedAt: new Date()
-      },
-      create: {
-        userId,
-        language: language || 'en',
-        level: level || 'beginner',
-        messages: [
-          { role: 'user', content: message, timestamp: new Date() },
-          { role: 'assistant', content: aiResponse.content, timestamp: new Date() }
-        ]
-      }
-    })
+    const newMessages = [
+      { role: 'user', content: message, timestamp: new Date() },
+      { role: 'assistant', content: aiResponse.content, timestamp: new Date() }
+    ]
+
+    let conversation
+
+    if (conversationId) {
+      // Append to existing conversation
+      conversation = await prisma.conversation.update({
+        where: { id: conversationId },
+        data: {
+          messages: {
+            push: newMessages
+          },
+          updatedAt: new Date()
+        }
+      })
+    } else {
+      // Create new conversation
+      conversation = await prisma.conversation.create({
+        data: {
+          userId,
+          language: language || 'en',
+          level: level || 'beginner',
+          messages: newMessages
+        }
+      })
+    }
 
     res.json({
       message: aiResponse.content,
