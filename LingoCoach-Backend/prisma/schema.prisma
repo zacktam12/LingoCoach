@@ -25,6 +25,8 @@ model User {
   lessons      UserLesson[]
   achievements UserAchievement[]
 
+  practiceSentences PracticeSentence[]
+
   // User preferences
   preferences UserPreferences?
 
@@ -40,6 +42,8 @@ model LearningProgress {
   score       Float
   completedAt DateTime @default(now())
   createdAt   DateTime @default(now())
+
+  timeSpent   Int?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -164,4 +168,17 @@ model PronunciationAnalysis {
   createdAt   DateTime @default(now())
 
   @@map("pronunciation_analysis")
+}
+
+model PracticeSentence {
+  id        String   @id @default(cuid())
+  userId    String
+  text      String
+  language  String
+  level     String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("practice_sentences")
 }
