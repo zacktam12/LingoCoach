@@ -1,26 +1,23 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { BookOpen, MessageCircle, Mic, Trophy, User, Menu, X, LogOut } from 'lucide-react'
+import { useAuthStore } from '@/stores/authStore'
+import { useUserPreferences } from '@/hooks/useUserPreferences'
 
 export default function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const pathname = usePathname()
-  const router = useRouter()
+  const { isAuthenticated, logout } = useAuthStore()
+  const { data: prefs } = useUserPreferences()
 
-  useEffect(() => {
-    // Check if user is authenticated
-    const token = localStorage.getItem('auth-token')
-    setIsAuthenticated(!!token)
-  }, [])
+  const activeLanguage = prefs?.targetLanguage || null
+  const activeLevel = prefs?.learningLevel || null
 
   const handleLogout = () => {
-    localStorage.removeItem('auth-token')
-    setIsAuthenticated(false)
-    router.push('/')
+    logout()
   }
 
   const navItems = isAuthenticated
@@ -29,6 +26,7 @@ export default function Navigation() {
         { name: 'Lessons', href: '/lessons', icon: BookOpen },
         { name: 'Conversations', href: '/conversations', icon: MessageCircle },
         { name: 'Pronunciation', href: '/pronunciation', icon: Mic },
+        { name: 'My Practice', href: '/practice', icon: BookOpen },
         { name: 'Achievements', href: '/achievements', icon: Trophy },
         { name: 'Profile', href: '/profile', icon: User },
       ]
@@ -67,7 +65,12 @@ export default function Navigation() {
           )}
           <div className="flex items-center">
             {isAuthenticated ? (
-              <div className="hidden sm:flex items-center">
+              <div className="hidden sm:flex items-center space-x-4">
+                {activeLanguage && (
+                  <span className="px-2 py-1 text-xs rounded-full bg-accent text-foreground">
+                    {activeLanguage.toUpperCase()} {activeLevel ? `• ${activeLevel}` : ''}
+                  </span>
+                )}
                 <button
                   onClick={handleLogout}
                   className="flex items-center text-muted-foreground hover:text-foreground"
