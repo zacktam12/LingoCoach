@@ -3,17 +3,18 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { authAPI } from '@/lib/api'
+import { useAuthStore } from '@/stores/authStore'
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const router = useRouter()
+  const { isAuthenticated, setIsAuthenticated, logout } = useAuthStore()
 
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem('auth-token')
       if (!token) {
-        router.push('/auth/signin')
+        logout()
         return
       }
 
@@ -22,9 +23,8 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
         await authAPI.me()
         setIsAuthenticated(true)
       } catch (error) {
-        // Token is invalid, remove it and redirect to sign in
-        localStorage.removeItem('auth-token')
-        router.push('/auth/signin')
+        // Token is invalid, use shared logout logic
+        logout()
       } finally {
         setIsLoading(false)
       }
