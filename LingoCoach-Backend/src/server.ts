@@ -17,6 +17,7 @@ import { lessonRoutes } from './routes/lessons'
 import { dashboardRoutes } from './routes/dashboard'
 import { userRoutes } from './routes/users'
 import { pronunciationRoutes } from './routes/pronunciation'
+import { practiceRoutes } from './routes/practice'
 import { DeepSeekService } from './services/ai'
 
 dotenv.config()
@@ -114,6 +115,7 @@ app.use('/api/lessons', lessonRoutes)
 app.use('/api/dashboard', dashboardRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/pronunciation', pronunciationRoutes)
+app.use('/api/practice', practiceRoutes)
 
 // Initialize AI service for WebSocket conversations
 const deepseek = new DeepSeekService(process.env.DEEPSEEK_API_KEY!)
@@ -129,16 +131,40 @@ io.on('connection', (socket) => {
 
   socket.on('send-message', async (data) => {
     try {
-      // Process message with AI
-      const response = await processMessageWithAI(data.message, data.language, data.level)
+      const { conversationId, message, language, level } = data || {}
 
-      // Broadcast to conversation room
-      socket.to(data.conversationId).emit('ai-response', {
+      if (!conversationId || !message) {
+        socket.emit('error', { message: 'conversationId and message are required' })
+        return
+      }
+
+      // Process message with AI
+      const response = await processMessageWithAI(message, language, level)
+
+      const newMessages = [
+        { role: 'user', content: message, timestamp: new Date() },
+        { role: 'assistant', content: response.content, timestamp: new Date() }
+      ]
+
+      // Persist messages to the conversation history
+      await prisma.conversation.update({
+        where: { id: conversationId },
+        data: {
+          messages: {
+            push: newMessages
+          },
+          updatedAt: new Date()
+        }
+      })
+
+      // Broadcast AI response to everyone in the room (including sender)
+      io.to(conversationId).emit('ai-response', {
         message: response.content,
         suggestions: response.suggestions,
         grammarCorrections: response.grammarCorrections
       })
     } catch (error) {
+      logger.error('WebSocket send-message error', { error })
       socket.emit('error', { message: 'Failed to process message' })
     }
   })
