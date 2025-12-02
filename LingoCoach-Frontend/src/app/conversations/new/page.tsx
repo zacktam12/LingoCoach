@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { conversationAPI } from '@/lib/api'
+import { conversationAPI, userAPI } from '@/lib/api'
 import ProtectedRoute from '@/components/ProtectedRoute'
 
 export default function NewConversation() {
@@ -12,6 +12,23 @@ export default function NewConversation() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        const response = await userAPI.getPreferences()
+        const prefs = response.data.preferences
+        if (prefs) {
+          setLanguage(prefs.targetLanguage || 'es')
+          setLevel(prefs.learningLevel || 'beginner')
+        }
+      } catch (err) {
+        console.error('Load preferences error:', err)
+      }
+    }
+
+    loadPreferences()
+  }, [])
 
   const startConversation = async () => {
     try {
