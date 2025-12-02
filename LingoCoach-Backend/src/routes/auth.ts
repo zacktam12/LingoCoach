@@ -123,6 +123,13 @@ router.post('/login', async (req, res) => {
   }
 })
 
+// Logout (JWT-based, stateless)
+router.post('/logout', (req, res) => {
+  // With JWT auth there is no server-side session to destroy.
+  // The client should remove the token from storage.
+  res.json({ success: true })
+})
+
 // Get current user
 router.get('/me', async (req, res) => {
   try {
