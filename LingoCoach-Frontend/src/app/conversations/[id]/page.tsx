@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation'
 import { Send, Bot, User } from 'lucide-react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { Spinner } from '@/components/ui/spinner'
+import { io, Socket } from 'socket.io-client'
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
 export default function ConversationDetail({ params }: { params: { id: string } }) {
   const [conversation, setConversation] = useState<any>(null)
@@ -14,7 +17,9 @@ export default function ConversationDetail({ params }: { params: { id: string } 
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isSocketConnected, setIsSocketConnected] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const socketRef = useRef<Socket | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -25,12 +30,48 @@ export default function ConversationDetail({ params }: { params: { id: string } 
     scrollToBottom()
   }, [messages])
 
+  useEffect(() => {
+    const socket = io(API_BASE_URL, {
+      transports: ['websocket'],
+    })
+
+    socketRef.current = socket
+
+    socket.on('connect', () => {
+      setIsSocketConnected(true)
+      socket.emit('join-conversation', params.id)
+    })
+
+    socket.on('disconnect', () => {
+      setIsSocketConnected(false)
+    })
+
+    socket.on('ai-response', (data: any) => {
+      const aiMessage = {
+        id: Date.now(),
+        role: 'assistant',
+        content: data.message,
+        suggestions: data.suggestions,
+        grammarCorrections: data.grammarCorrections,
+        timestamp: new Date(),
+      }
+
+      setMessages((prev) => [...prev, aiMessage])
+    })
+
+    return () => {
+      socket.off('ai-response')
+      socket.disconnect()
+      socketRef.current = null
+    }
+  }, [params.id])
+
   const fetchConversation = async () => {
     try {
       setLoading(true)
       const response = await conversationAPI.getConversation(params.id)
       setConversation(response.data.conversation)
-      
+
       // Parse messages from the conversation object
       if (response.data.conversation.messages) {
         // Assuming messages is an array of message objects
@@ -61,37 +102,48 @@ export default function ConversationDetail({ params }: { params: { id: string } 
   const sendMessage = async () => {
     if (!newMessage.trim() || sending) return
 
+    const messageToSend = newMessage.trim()
+
+    const userMessage = {
+      id: Date.now(),
+      role: 'user',
+      content: messageToSend,
+      timestamp: new Date(),
+    }
+
+    // Add user message to UI immediately
+    setMessages((prev) => [...prev, userMessage])
+    setNewMessage('')
+    setError(null)
+    setSending(true)
+
     try {
-      setSending(true)
-      const userMessage = {
-        id: Date.now(),
-        role: 'user',
-        content: newMessage,
-        timestamp: new Date()
+      if (socketRef.current && isSocketConnected) {
+        socketRef.current.emit('send-message', {
+          conversationId: params.id,
+          message: messageToSend,
+          language: conversation?.language || 'en',
+          level: conversation?.level || 'beginner',
+        })
+      } else {
+        // Fallback to HTTP API if WebSocket is not connected
+        const response = await conversationAPI.sendMessage({
+          message: messageToSend,
+          conversationId: params.id,
+          language: conversation?.language || 'en',
+          level: conversation?.level || 'beginner',
+        })
+
+        const aiMessage = {
+          id: Date.now() + 1,
+          role: 'assistant',
+          content: response.data.message,
+          suggestions: response.data.suggestions,
+          grammarCorrections: response.data.grammarCorrections,
+          timestamp: new Date(),
+        }
+        setMessages((prev) => [...prev, aiMessage])
       }
-
-      // Add user message to UI immediately
-      setMessages(prev => [...prev, userMessage])
-      setNewMessage('')
-
-      // Send to backend
-      const response = await conversationAPI.sendMessage({
-        message: newMessage,
-        conversationId: params.id,
-        language: conversation?.language || 'en',
-        level: conversation?.level || 'beginner'
-      })
-
-      // Add AI response to UI
-      const aiMessage = {
-        id: Date.now() + 1,
-        role: 'assistant',
-        content: response.data.message,
-        suggestions: response.data.suggestions,
-        grammarCorrections: response.data.grammarCorrections,
-        timestamp: new Date()
-      }
-      setMessages(prev => [...prev, aiMessage])
     } catch (err) {
       setError('Failed to send message')
       console.error('Send message error:', err)
@@ -106,6 +158,13 @@ export default function ConversationDetail({ params }: { params: { id: string } 
       sendMessage()
     }
   }
+
+  const aiUnavailable = messages.some(
+    (m) =>
+      m.role === 'assistant' &&
+      typeof m.content === 'string' &&
+      m.content.includes("trouble connecting to the AI tutor")
+  )
 
   if (loading) {
     return (
@@ -137,6 +196,12 @@ export default function ConversationDetail({ params }: { params: { id: string } 
                 Level: {conversation?.level || 'Beginner'}
               </p>
             </div>
+
+            {aiUnavailable && (
+              <div className="bg-amber-50 text-amber-800 text-xs px-4 py-2 border-b border-amber-200">
+                AI tutor is temporarily unavailable. You can still practice by writing messages; responses may be limited.
+              </div>
+            )}
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4">
