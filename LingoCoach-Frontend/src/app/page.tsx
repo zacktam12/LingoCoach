@@ -4,24 +4,6 @@ import Link from "next/link"
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      {/* Header */}
-      <header className="container mx-auto px-4 py-6">
-        <nav className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Brain className="h-8 w-8 text-blue-600" />
-            <span className="text-2xl font-bold text-gray-900 dark:text-white">LingoCoach</span>
-          </div>
-          <div className="flex items-center space-x-4">
-            <Link href="/auth/signin" className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
-              Sign In
-            </Link>
-            <Link href="/auth/signup" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-              Get Started
-            </Link>
-          </div>
-        </nav>
-      </header>
-
       {/* Hero Section */}
       <main className="container mx-auto px-4 py-16">
         <div className="text-center max-w-4xl mx-auto">
@@ -127,15 +109,6 @@ export default function Home() {
           </Link>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="mt-24 border-t border-gray-200 dark:border-gray-700">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center text-gray-600 dark:text-gray-400">
-            <p>&copy; 2024 LingoCoach. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
