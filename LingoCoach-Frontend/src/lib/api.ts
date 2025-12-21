@@ -89,11 +89,12 @@ export const lessonAPI = {
 }
 
 export const pronunciationAPI = {
-  analyze: (data: {
-    audioUrl: string
-    text: string
-    language: string
-  }) => api.post('/api/pronunciation/analyze', data),
+  analyze: (formData: FormData) =>
+    api.post('/api/pronunciation/analyze', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }),
   getHistory: () => api.get('/api/pronunciation/history'),
 }
 
@@ -102,6 +103,15 @@ export const dashboardAPI = {
   getProgress: () => api.get('/api/dashboard/progress'),
   getAchievements: () => api.get('/api/dashboard/achievements'),
   getAllAchievements: () => api.get('/api/dashboard/achievements/all'),
+  getAnalytics: () => api.get('/api/dashboard/analytics'),
+  getRecommendations: () => api.get('/api/dashboard/recommendations'),
+}
+
+export const practiceAPI = {
+  getSentences: () => api.get('/api/practice'),
+  createSentence: (data: { text: string; language: string; level?: string }) =>
+    api.post('/api/practice', data),
+  deleteSentence: (id: string) => api.delete(`/api/practice/${id}`),
 }
 
 export default api

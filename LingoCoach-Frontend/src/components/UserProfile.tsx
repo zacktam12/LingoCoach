@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { userAPI } from '@/lib/api'
+import { useRouter } from 'next/navigation'
+import { userAPI, authAPI } from '@/lib/api'
 
 export default function UserProfile() {
   const [profile, setProfile] = useState<any>(null)
@@ -10,7 +11,8 @@ export default function UserProfile() {
   const [isEditingPreferences, setIsEditingPreferences] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
+  const router = useRouter()
+
   // Form states
   const [name, setName] = useState('')
   const [targetLanguage, setTargetLanguage] = useState('')
@@ -71,6 +73,16 @@ export default function UserProfile() {
     }
   }
 
+  const handleLogout = async () => {
+    try {
+      // Best-effort logout request; JWT is stateless so this is mainly for symmetry
+      await authAPI.logout().catch(() => undefined)
+    } finally {
+      localStorage.removeItem('auth-token')
+      router.push('/auth/signin')
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -89,7 +101,15 @@ export default function UserProfile() {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">User Profile</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">User Profile</h1>
+        <button
+          onClick={handleLogout}
+          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+        >
+          Log out
+        </button>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Profile Section */}

@@ -1,37 +1,61 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { dashboardAPI } from '@/lib/api'
+import { useDashboardData } from '@/hooks/useDashboardData'
 import { BookOpen, MessageCircle, Mic, Trophy, Target, Calendar, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import { Spinner } from '@/components/ui/spinner'
+import { StatCard } from '@/components/ui/StatCard'
+import { ModuleCard } from '@/components/ui/ModuleCard'
+import { ProgressItem } from '@/components/ui/ProgressItem'
+import { motion, useReducedMotion } from 'framer-motion'
 
 export default function Dashboard() {
-  const [stats, setStats] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isLoading, error } = useDashboardData()
 
-  useEffect(() => {
-    fetchDashboardStats()
-  }, [])
+  const shouldReduceMotion = useReducedMotion()
 
-  const fetchDashboardStats = async () => {
-    try {
-      setLoading(true)
-      const response = await dashboardAPI.getStats()
-      setStats(response.data)
-    } catch (err) {
-      setError('Failed to load dashboard data')
-      console.error('Fetch dashboard error:', err)
-    } finally {
-      setLoading(false)
-    }
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.06,
+        delayChildren: 0.04,
+      },
+    },
   }
 
-  if (loading) {
+  const itemVariants = {
+    hidden: { opacity: 0, y: 8 },
+    visible: { opacity: 1, y: 0 },
+  }
+
+  const motionListProps = shouldReduceMotion
+    ? {}
+    : { initial: 'hidden' as const, animate: 'visible' as const }
+
+  const stats = data?.stats || null
+  const progress = data?.progress || []
+  const analytics = data?.analytics || null
+  const recommendations = data?.recommendations || null
+
+  const lessonsGoal = 10
+  const lessonsCompleted = stats?.lessonsCompleted || 0
+  const goalPercent = Math.min(100, Math.round((lessonsCompleted / lessonsGoal) * 100))
+  const maxDailyScore =
+    (analytics?.dailyScores && analytics.dailyScores.length > 0
+      ? Math.max(...analytics.dailyScores.map((d: any) => d.totalScore || 0))
+      : 0) || 0
+  const maxLanguageTime =
+    (analytics?.languageStats && analytics.languageStats.length > 0
+      ? Math.max(...analytics.languageStats.map((l: any) => l.totalTime || 0))
+      : 0) || 0
+
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <Spinner className="h-12 w-12 text-blue-600" />
       </div>
     )
   }
@@ -39,195 +63,237 @@ export default function Dashboard() {
   if (error) {
     return (
       <div className="p-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 rounded-md">
-        {error}
+        Failed to load dashboard data
       </div>
     )
   }
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Learning Dashboard</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-8">Learning Dashboard</h1>
           
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-              <div className="flex items-center">
-                <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-lg mr-4">
-                  <BookOpen className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Lessons Completed</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats?.lessonsCompleted || 0}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-              <div className="flex items-center">
-                <div className="p-3 bg-green-100 dark:bg-green-900 rounded-lg mr-4">
-                  <MessageCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Conversations</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats?.conversationsCount || 0}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-              <div className="flex items-center">
-                <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-lg mr-4">
-                  <Trophy className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Points</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats?.totalScore || 0}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-              <div className="flex items-center">
-                <div className="p-3 bg-orange-100 dark:bg-orange-900 rounded-lg mr-4">
-                  <Calendar className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Day Streak</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats?.streakDays || 0}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <motion.div
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+            variants={containerVariants}
+            {...motionListProps}
+          >
+            <motion.div variants={itemVariants}>
+              <StatCard icon={<BookOpen className="h-6 w-6 text-primary" />} title="Lessons Completed" value={stats?.lessonsCompleted || 0} />
+            </motion.div>
+            <motion.div variants={itemVariants}>
+              <StatCard icon={<MessageCircle className="h-6 w-6 text-primary" />} title="Conversations" value={stats?.conversationsCount || 0} />
+            </motion.div>
+            <motion.div variants={itemVariants}>
+              <StatCard icon={<Trophy className="h-6 w-6 text-primary" />} title="Total Points" value={stats?.totalScore || 0} />
+            </motion.div>
+            <motion.div variants={itemVariants}>
+              <StatCard icon={<Calendar className="h-6 w-6 text-primary" />} title="Day Streak" value={stats?.streakDays || 0} />
+            </motion.div>
+          </motion.div>
           
           {/* Quick Actions */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Learning Modules */}
-            <div className="lg:col-span-2">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Learning Modules</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Link href="/lessons" className="block">
-                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center mb-4">
-                      <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg mr-3">
-                        <BookOpen className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <h3 className="font-medium text-gray-900 dark:text-white">Lessons</h3>
-                    </div>
-                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-                      Practice with structured lessons tailored to your level
-                    </p>
-                    <button className="text-blue-600 dark:text-blue-400 text-sm font-medium hover:underline">
-                      Continue Learning →
-                    </button>
-                  </div>
-                </Link>
-                
-                <Link href="/conversations" className="block">
-                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center mb-4">
-                      <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg mr-3">
-                        <MessageCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-                      </div>
-                      <h3 className="font-medium text-gray-900 dark:text-white">Conversations</h3>
-                    </div>
-                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-                      Practice speaking with AI conversation partners
-                    </p>
-                    <button className="text-green-600 dark:text-green-400 text-sm font-medium hover:underline">
-                      Start Chatting →
-                    </button>
-                  </div>
-                </Link>
-                
-                <Link href="/pronunciation" className="block">
-                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center mb-4">
-                      <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg mr-3">
-                        <Mic className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                      </div>
-                      <h3 className="font-medium text-gray-900 dark:text-white">Pronunciation</h3>
-                    </div>
-                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-                      Improve your speaking skills with pronunciation practice
-                    </p>
-                    <button className="text-purple-600 dark:text-purple-400 text-sm font-medium hover:underline">
-                      Practice Now →
-                    </button>
-                  </div>
-                </Link>
-                
-                <Link href="/achievements" className="block">
-                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center mb-4">
-                      <div className="p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg mr-3">
-                        <Trophy className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-                      </div>
-                      <h3 className="font-medium text-gray-900 dark:text-white">Achievements</h3>
-                    </div>
-                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-                      Track your progress and earn badges
-                    </p>
-                    <button className="text-yellow-600 dark:text-yellow-400 text-sm font-medium hover:underline">
-                      View Badges →
-                    </button>
-                  </div>
-                </Link>
+            <div className="lg:col-span-2 space-y-6">
+              <div>
+                <h2 className="text-xl font-semibold text-foreground mb-4">Learning Modules</h2>
+                <motion.div
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                  variants={containerVariants}
+                  {...motionListProps}
+                >
+                  <motion.div variants={itemVariants}>
+                    <ModuleCard icon={<BookOpen className="h-5 w-5 text-primary" />} title="Lessons" description="Practice with structured lessons tailored to your level" href="/lessons" />
+                  </motion.div>
+                  <motion.div variants={itemVariants}>
+                    <ModuleCard icon={<MessageCircle className="h-5 w-5 text-primary" />} title="Conversations" description="Practice speaking with AI conversation partners" href="/conversations" />
+                  </motion.div>
+                  <motion.div variants={itemVariants}>
+                    <ModuleCard icon={<Mic className="h-5 w-5 text-primary" />} title="Pronunciation" description="Improve your speaking skills with pronunciation practice" href="/pronunciation" />
+                  </motion.div>
+                  <motion.div variants={itemVariants}>
+                    <ModuleCard icon={<Trophy className="h-5 w-5 text-primary" />} title="Achievements" description="Track your progress and earn badges" href="/achievements" />
+                  </motion.div>
+                </motion.div>
               </div>
+
+              {recommendations && (
+                <div className="bg-card rounded-xl shadow-lg p-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">Recommended Next Steps</h3>
+                  <div className="space-y-4 text-sm text-muted-foreground">
+                    {recommendations.recommendedLesson && (
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium text-foreground">Next Lesson</div>
+                          <div>{recommendations.recommendedLesson.title}</div>
+                          <div className="text-xs">
+                            {recommendations.recommendedLesson.language} • {recommendations.recommendedLesson.level}
+                          </div>
+                        </div>
+                        <Link
+                          href={`/lessons/${recommendations.recommendedLesson.id}`}
+                          className="px-3 py-1 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+                        >
+                          Start
+                        </Link>
+                      </div>
+                    )}
+
+                    {recommendations.recommendedConversation && (
+                      <div className="flex items-center justify-between border-t border-border pt-3 mt-1">
+                        <div>
+                          <div className="font-medium text-foreground">Suggested Conversation</div>
+                          <div>
+                            {recommendations.recommendedConversation.language.toUpperCase()} •{' '}
+                            {recommendations.recommendedConversation.level}
+                          </div>
+                          <div className="text-xs">
+                            Topic: {recommendations.recommendedConversation.suggestedTopic}
+                          </div>
+                        </div>
+                        <Link
+                          href="/conversations/new"
+                          className="px-3 py-1 text-xs rounded-md bg-secondary text-foreground hover:bg-secondary/80"
+                        >
+                          Start
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             
             {/* Progress Overview */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Progress Overview</h2>
+              <h2 className="text-xl font-semibold text-foreground mb-4">Progress Overview</h2>
               
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+              <div className="bg-card rounded-xl shadow-lg p-6">
                 <div className="flex items-center mb-4">
-                  <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400 mr-2" />
-                  <h3 className="font-medium text-gray-900 dark:text-white">Weekly Goal</h3>
+                  <TrendingUp className="h-5 w-5 text-primary mr-2" />
+                  <h3 className="font-medium text-foreground">Weekly Goal</h3>
                 </div>
                 
                 <div className="mb-6">
-                  <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-1">
-                    <span>15 of 30 minutes</span>
-                    <span>50%</span>
+                  <div className="flex justify-between text-sm text-muted-foreground mb-1">
+                    <span>{lessonsCompleted} of {lessonsGoal} lessons</span>
+                    <span>{goalPercent}%</span>
                   </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div className="bg-green-600 h-2 rounded-full" style={{ width: '50%' }}></div>
+                  <div className="w-full bg-secondary rounded-full h-2">
+                    <div
+                      className="bg-primary h-2 rounded-full"
+                      style={{ width: `${goalPercent}%` }}
+                    ></div>
                   </div>
                 </div>
                 
                 <div className="space-y-4">
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 bg-green-600 rounded-full mr-3"></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">Today</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">15 minutes</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 bg-gray-300 dark:bg-gray-600 rounded-full mr-3"></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">Yesterday</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">22 minutes</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 bg-gray-300 dark:bg-gray-600 rounded-full mr-3"></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">2 days ago</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">8 minutes</p>
-                    </div>
-                  </div>
+                  {progress.length > 0 ? (
+                    progress.map((item: any, index: number) => {
+                      const date = item.completedAt ? new Date(item.completedAt) : null
+                      const dateLabel = date ? date.toLocaleDateString() : ''
+                      const title = `${item.language} • ${item.level}`
+                      const value = `Score: ${Math.round(item.score)}${dateLabel ? ` • ${dateLabel}` : ''}`
+
+                      return (
+                        <ProgressItem
+                          key={item.id || item.completedAt || index}
+                          title={title}
+                          value={value}
+                          active={index === 0}
+                        />
+                      )
+                    })
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Complete a lesson to see your recent progress here.
+                    </p>
+                  )}
                 </div>
                 
-                <button className="w-full mt-6 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                <button className="w-full mt-6 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90">
                   Set Daily Goal
                 </button>
               </div>
+
+              {analytics && (
+                <div className="mt-6 bg-card rounded-xl shadow-lg p-6">
+                  <h3 className="font-medium text-foreground mb-4 flex items-center">
+                    <TrendingUp className="h-5 w-5 text-primary mr-2" />
+                    Weekly Trends
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="text-sm font-medium mb-2">Scores last 7 days</div>
+                      <div className="space-y-2">
+                        {analytics.dailyScores.map((day: any) => {
+                          const date = day.date ? new Date(day.date) : null
+                          const dateLabel = date ? date.toLocaleDateString() : ''
+                          const widthPercent = maxDailyScore
+                            ? Math.round(((day.totalScore || 0) / maxDailyScore) * 100)
+                            : 0
+                          return (
+                            <div key={day.date} className="flex items-center justify-between text-xs text-muted-foreground">
+                              <span className="w-16 truncate">{dateLabel}</span>
+                              <div className="flex-1 mx-2 h-2 bg-secondary rounded-full overflow-hidden">
+                                <div
+                                  className="h-2 bg-primary rounded-full"
+                                  style={{ width: `${Math.min(100, Math.max(0, widthPercent))}%` }}
+                                ></div>
+                              </div>
+                              <span className="w-10 text-right">{Math.round(day.totalScore || 0)}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-sm font-medium mb-2">By language</div>
+                      <div className="space-y-2 text-xs text-muted-foreground">
+                        {analytics.languageStats.length > 0 ? (
+                          analytics.languageStats.map((item: any) => {
+                            const widthPercent = maxLanguageTime
+                              ? Math.round(((item.totalTime || 0) / maxLanguageTime) * 100)
+                              : 0
+                            return (
+                              <div key={item.language} className="space-y-1">
+                                <div className="flex justify-between">
+                                  <span>{item.language}</span>
+                                  <span>
+                                    {Math.round(item.totalTime || 0)} min  • {Math.round(item.averageScore || 0)}/100
+                                  </span>
+                                </div>
+                                <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                                  <div
+                                    className="h-2 bg-primary rounded-full"
+                                    style={{ width: `${Math.min(100, Math.max(0, widthPercent))}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                            )
+                          })
+                        ) : (
+                          <div>No language stats yet.</div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-muted-foreground border-t border-border pt-3 mt-2">
+                      <div className="flex justify-between">
+                        <span>Pronunciation (7 days)</span>
+                        <span>
+                          {analytics.pronunciationSummary.count} sessions  •{' '}
+                          {Math.round(analytics.pronunciationSummary.averageScore || 0)}/100
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

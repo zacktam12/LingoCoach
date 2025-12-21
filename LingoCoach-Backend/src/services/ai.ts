@@ -27,12 +27,15 @@ export interface GrammarCorrection {
 
 export class DeepSeekService {
   private client: OpenAI
+  private timeoutMs: number
 
   constructor(apiKey: string) {
     this.client = new OpenAI({
       apiKey,
       baseURL: 'https://api.deepseek.com/v1'
     })
+    const parsedTimeout = parseInt(process.env.DEEPSEEK_TIMEOUT_MS || '15000', 10)
+    this.timeoutMs = Number.isNaN(parsedTimeout) ? 15000 : parsedTimeout
   }
 
   async generateConversation(
@@ -42,15 +45,18 @@ export class DeepSeekService {
     try {
       const systemPrompt = this.buildSystemPrompt(context)
       
-      const response = await this.client.chat.completions.create({
-        model: 'deepseek-chat',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...messages
-        ],
-        temperature: 0.7,
-        max_tokens: 1000
-      })
+      const response = await this.withTimeout(
+        this.client.chat.completions.create({
+          model: 'deepseek-chat',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            ...messages
+          ],
+          temperature: 0.7,
+          max_tokens: 1000
+        }),
+        this.timeoutMs
+      )
 
       const content = response.choices[0]?.message?.content || ''
       
@@ -60,8 +66,18 @@ export class DeepSeekService {
         grammarCorrections: this.extractGrammarCorrections(content)
       }
     } catch (error) {
-      console.error('DeepSeek API error:', error)
-      throw new Error('Failed to generate conversation')
+      console.error('DeepSeek API error (generateConversation):', error)
+
+      // Return a safe fallback response so the rest of the app can continue
+      return {
+        content:
+          "I'm having trouble connecting to the AI tutor right now. Please try again in a moment.",
+        suggestions: [
+          'You can continue practicing by reading your last message aloud.',
+          'Try reviewing your recent lesson vocabulary while the AI reconnects.',
+        ],
+        grammarCorrections: []
+      }
     }
   }
 
@@ -173,6 +189,24 @@ export class DeepSeekService {
     `
     
     return prompt
+  }
+
+  private async withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error(`DeepSeek request timed out after ${timeoutMs}ms`))
+      }, timeoutMs)
+
+      promise
+        .then((result) => {
+          clearTimeout(timeoutId)
+          resolve(result)
+        })
+        .catch((err) => {
+          clearTimeout(timeoutId)
+          reject(err)
+        })
+    })
   }
 
   private extractSuggestions(content: string): string[] {

@@ -1,35 +1,65 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { lessonAPI } from '@/lib/api'
+import { useLessonsQuery } from '@/hooks/useLessons'
+import { useUserPreferences } from '@/hooks/useUserPreferences'
+
 import { BookOpen, Clock, Star, Play } from 'lucide-react'
 import Link from 'next/link'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import { motion, useReducedMotion } from 'framer-motion'
 
 export default function Lessons() {
   const [lessons, setLessons] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState({ language: '', level: '', category: '' })
 
-  useEffect(() => {
-    fetchLessons()
-  }, [filter])
+  const { data, isLoading, error } = useLessonsQuery(filter)
+  const { data: prefs } = useUserPreferences()
 
-  const fetchLessons = async () => {
-    try {
-      setLoading(true)
-      const response = await lessonAPI.getLessons(filter)
-      setLessons(response.data.lessons || [])
-    } catch (err) {
-      setError('Failed to load lessons')
-      console.error('Fetch lessons error:', err)
-    } finally {
-      setLoading(false)
-    }
+  const shouldReduceMotion = useReducedMotion()
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.06,
+        delayChildren: 0.04,
+      },
+    },
   }
 
-  if (loading) {
+  const itemVariants = {
+    hidden: { opacity: 0, y: 8 },
+    visible: { opacity: 1, y: 0 },
+  }
+
+  const motionListProps = shouldReduceMotion
+    ? {}
+    : { initial: 'hidden' as const, animate: 'visible' as const }
+
+  useEffect(() => {
+    if (!prefs) return
+
+    setFilter((prev) => {
+      const next = { ...prev }
+      if (!prev.language && prefs.targetLanguage) {
+        next.language = prefs.targetLanguage
+      }
+      if (!prev.level && prefs.learningLevel) {
+        next.level = prefs.learningLevel
+      }
+      return next
+    })
+  }, [prefs])
+
+  useEffect(() => {
+    if (data) {
+      setLessons(data)
+    }
+  }, [data])
+
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-96">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -107,9 +137,17 @@ export default function Lessons() {
           </div>
           
           {/* Lessons Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <motion.div
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            variants={containerVariants}
+            {...motionListProps}
+          >
             {lessons.map((lesson) => (
-              <div key={lesson.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+              <motion.div
+                key={lesson.id}
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
+                variants={itemVariants}
+              >
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
@@ -141,19 +179,22 @@ export default function Lessons() {
                     </button>
                   </Link>
                 </div>
-              </div>
+              </motion.div>
             ))}
             
             {lessons.length === 0 && (
-              <div className="col-span-full text-center py-12">
+              <motion.div
+                className="col-span-full text-center py-12"
+                variants={itemVariants}
+              >
                 <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No lessons found</h3>
                 <p className="text-gray-600 dark:text-gray-400">
                   Try adjusting your filters to see more lessons.
                 </p>
-              </div>
+              </motion.div>
             )}
-          </div>
+          </motion.div>
         </div>
       </div>
     </ProtectedRoute>

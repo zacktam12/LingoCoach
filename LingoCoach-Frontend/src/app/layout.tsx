@@ -3,6 +3,8 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { PWAInstaller } from '../components'
 import Navigation from '../components/Navigation'
+import { QueryProvider } from '../providers/QueryProvider'
+import { AnimatedBackground } from '../components/AnimatedBackground'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -13,8 +15,8 @@ export const metadata: Metadata = {
   themeColor: '#3b82f6',
   viewport: 'minimum-scale=1, initial-scale=1, width=device-width, shrink-to-fit=no, viewport-fit=cover',
   icons: {
-    icon: '/icons/icon-192x192.png',
-    apple: '/icons/apple-touch-icon.png',
+    icon: '/icons/icon-192x192.svg',
+    apple: '/icons/apple-touch-icon.svg',
   },
   appleWebApp: {
     capable: true,
@@ -39,9 +41,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <Navigation />
-        <main>{children}</main>
-        <PWAInstaller />
+        <QueryProvider>
+          <AnimatedBackground />
+          <Navigation />
+          <main>{children}</main>
+          <PWAInstaller />
+        </QueryProvider>
       </body>
     </html>
   )

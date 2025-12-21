@@ -104,7 +104,8 @@ router.post('/complete', authenticateToken, async (req: AuthRequest, res: Respon
         userId,
         language: lesson.language,
         level: lesson.level,
-        score
+        score,
+        timeSpent: typeof timeSpent === 'number' ? timeSpent : null
       }
     })
 

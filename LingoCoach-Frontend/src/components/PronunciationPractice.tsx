@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Mic, MicOff, Play, Square, RotateCcw } from 'lucide-react'
+import { pronunciationAPI, userAPI } from '@/lib/api'
 
 export default function PronunciationPractice() {
   const [isRecording, setIsRecording] = useState(false)
@@ -12,9 +13,42 @@ export default function PronunciationPractice() {
   const [feedback, setFeedback] = useState<any>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [history, setHistory] = useState<any[]>([])
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
+
+  const isAiDegraded =
+    score === 0 &&
+    feedback &&
+    Array.isArray(feedback.errors) &&
+    feedback.errors.includes('Failed to analyze pronunciation')
+
+  useEffect(() => {
+    loadHistory()
+    loadPreferences()
+  }, [])
+
+  const loadHistory = async () => {
+    try {
+      const response = await pronunciationAPI.getHistory()
+      setHistory(response.data.analyses || [])
+    } catch (err) {
+      console.error('Failed to load pronunciation history:', err)
+    }
+  }
+
+  const loadPreferences = async () => {
+    try {
+      const response = await userAPI.getPreferences()
+      const prefs = response.data.preferences
+      if (prefs && prefs.targetLanguage) {
+        setLanguage(prefs.targetLanguage)
+      }
+    } catch (err) {
+      console.error('Failed to load user preferences:', err)
+    }
+  }
 
   const startRecording = async () => {
     try {
@@ -65,30 +99,18 @@ export default function PronunciationPractice() {
       setIsAnalyzing(true)
       setError(null)
       
-      // Create FormData to send the audio file
       const formData = new FormData()
       formData.append('audio', audioBlob, 'recording.webm')
       formData.append('text', text)
       formData.append('language', language)
-      
-      // Make API call with FormData
-      const response = await fetch('/api/pronunciation/analyze', {
-        method: 'POST',
-        body: formData,
-        headers: {
-          // Note: Don't set Content-Type header when using FormData
-          // The browser will set it with the correct boundary
-        }
-      })
-      
-      if (!response.ok) {
-        throw new Error('Failed to analyze pronunciation')
-      }
-      
-      const data = await response.json()
-      
-      setScore(data.score)
-      setFeedback(data.feedback)
+
+      const response = await pronunciationAPI.analyze(formData)
+
+      setScore(response.data.score)
+      setFeedback(response.data.feedback)
+
+      // Refresh history so recent analysis appears
+      loadHistory()
     } catch (err) {
       setError('Failed to analyze pronunciation. Please try again.')
       console.error('Analysis error:', err)
@@ -113,6 +135,11 @@ export default function PronunciationPractice() {
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
       <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Pronunciation Practice</h2>
+      {isAiDegraded && (
+        <div className="mb-4 p-3 text-xs rounded-md bg-amber-50 text-amber-800 border border-amber-200">
+          Pronunciation AI is temporarily unavailable. You can still record and listen to yourself while it recovers.
+        </div>
+      )}
       
       <div className="space-y-6">
         {/* Language Selection */}
@@ -232,6 +259,25 @@ export default function PronunciationPractice() {
                 </ul>
               </div>
             )}
+          </div>
+        )}
+        
+        {/* History */}
+        {history.length > 0 && (
+          <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Recent Pronunciation Sessions</h3>
+            <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+              {history.map((item) => {
+                const date = item.createdAt ? new Date(item.createdAt) : null
+                const dateLabel = date ? date.toLocaleString() : ''
+                return (
+                  <li key={item.id} className="flex justify-between">
+                    <span className="mr-2 truncate">{item.text}</span>
+                    <span className="ml-2 whitespace-nowrap">{Math.round(item.score)}/100{dateLabel ? ` • ${dateLabel}` : ''}</span>
+                  </li>
+                )
+              })}
+            </ul>
           </div>
         )}
         

@@ -83,6 +83,108 @@ router.get('/progress', authenticateToken, async (req: AuthRequest, res: Respons
   }
 })
 
+router.get('/analytics', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const startDate = new Date(today)
+    startDate.setDate(startDate.getDate() - 6)
+
+    const [progressEntries, pronunciationEntries] = await Promise.all([
+      prisma.learningProgress.findMany({
+        where: {
+          userId,
+          completedAt: {
+            gte: startDate,
+          },
+        },
+        orderBy: { completedAt: 'asc' },
+      }),
+      prisma.pronunciationAnalysis.findMany({
+        where: {
+          userId,
+          createdAt: {
+            gte: startDate,
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+    ])
+
+    const dailyMap: Record<string, { date: string; totalScore: number; totalTime: number; count: number }> = {}
+
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today)
+      date.setDate(today.getDate() - i)
+      const key = date.toISOString().slice(0, 10)
+      dailyMap[key] = {
+        date: key,
+        totalScore: 0,
+        totalTime: 0,
+        count: 0,
+      }
+    }
+
+    for (const entry of progressEntries) {
+      const date = new Date(entry.completedAt)
+      date.setHours(0, 0, 0, 0)
+      const key = date.toISOString().slice(0, 10)
+      if (dailyMap[key]) {
+        dailyMap[key].totalScore += entry.score
+        dailyMap[key].totalTime += entry.timeSpent ?? 0
+        dailyMap[key].count += 1
+      }
+    }
+
+    const languageStatsMap: Record<string, { language: string; count: number; totalScore: number; totalTime: number; averageScore: number; averageTime: number }> = {}
+
+    for (const entry of progressEntries) {
+      const language = entry.language
+      if (!languageStatsMap[language]) {
+        languageStatsMap[language] = {
+          language,
+          count: 0,
+          totalScore: 0,
+          totalTime: 0,
+          averageScore: 0,
+          averageTime: 0,
+        }
+      }
+      languageStatsMap[language].count += 1
+      languageStatsMap[language].totalScore += entry.score
+      languageStatsMap[language].totalTime += entry.timeSpent ?? 0
+    }
+
+    Object.values(languageStatsMap).forEach((item) => {
+      item.averageScore = item.count > 0 ? item.totalScore / item.count : 0
+      item.averageTime = item.count > 0 ? item.totalTime / item.count : 0
+    })
+
+    let pronunciationTotalScore = 0
+
+    for (const entry of pronunciationEntries) {
+      pronunciationTotalScore += entry.score
+    }
+
+    const pronunciationSummary = {
+      count: pronunciationEntries.length,
+      averageScore: pronunciationEntries.length > 0 ? pronunciationTotalScore / pronunciationEntries.length : 0,
+    }
+
+    res.json({
+      dailyScores: Object.values(dailyMap),
+      languageStats: Object.values(languageStatsMap),
+      pronunciationSummary,
+    })
+  } catch (error) {
+    console.error('Get analytics error:', error)
+    res.status(500).json({ error: 'Failed to fetch analytics' })
+  }
+})
+
 // Get user achievements
 router.get('/achievements', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {

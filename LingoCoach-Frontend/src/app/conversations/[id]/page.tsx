@@ -5,6 +5,10 @@ import { conversationAPI } from '@/lib/api'
 import { useRouter } from 'next/navigation'
 import { Send, Bot, User } from 'lucide-react'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import { Spinner } from '@/components/ui/spinner'
+import { io, Socket } from 'socket.io-client'
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
 export default function ConversationDetail({ params }: { params: { id: string } }) {
   const [conversation, setConversation] = useState<any>(null)
@@ -13,7 +17,9 @@ export default function ConversationDetail({ params }: { params: { id: string } 
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isSocketConnected, setIsSocketConnected] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const socketRef = useRef<Socket | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -24,12 +30,48 @@ export default function ConversationDetail({ params }: { params: { id: string } 
     scrollToBottom()
   }, [messages])
 
+  useEffect(() => {
+    const socket = io(API_BASE_URL, {
+      transports: ['websocket'],
+    })
+
+    socketRef.current = socket
+
+    socket.on('connect', () => {
+      setIsSocketConnected(true)
+      socket.emit('join-conversation', params.id)
+    })
+
+    socket.on('disconnect', () => {
+      setIsSocketConnected(false)
+    })
+
+    socket.on('ai-response', (data: any) => {
+      const aiMessage = {
+        id: Date.now(),
+        role: 'assistant',
+        content: data.message,
+        suggestions: data.suggestions,
+        grammarCorrections: data.grammarCorrections,
+        timestamp: new Date(),
+      }
+
+      setMessages((prev) => [...prev, aiMessage])
+    })
+
+    return () => {
+      socket.off('ai-response')
+      socket.disconnect()
+      socketRef.current = null
+    }
+  }, [params.id])
+
   const fetchConversation = async () => {
     try {
       setLoading(true)
       const response = await conversationAPI.getConversation(params.id)
       setConversation(response.data.conversation)
-      
+
       // Parse messages from the conversation object
       if (response.data.conversation.messages) {
         // Assuming messages is an array of message objects
@@ -60,37 +102,48 @@ export default function ConversationDetail({ params }: { params: { id: string } 
   const sendMessage = async () => {
     if (!newMessage.trim() || sending) return
 
+    const messageToSend = newMessage.trim()
+
+    const userMessage = {
+      id: Date.now(),
+      role: 'user',
+      content: messageToSend,
+      timestamp: new Date(),
+    }
+
+    // Add user message to UI immediately
+    setMessages((prev) => [...prev, userMessage])
+    setNewMessage('')
+    setError(null)
+    setSending(true)
+
     try {
-      setSending(true)
-      const userMessage = {
-        id: Date.now(),
-        role: 'user',
-        content: newMessage,
-        timestamp: new Date()
+      if (socketRef.current && isSocketConnected) {
+        socketRef.current.emit('send-message', {
+          conversationId: params.id,
+          message: messageToSend,
+          language: conversation?.language || 'en',
+          level: conversation?.level || 'beginner',
+        })
+      } else {
+        // Fallback to HTTP API if WebSocket is not connected
+        const response = await conversationAPI.sendMessage({
+          message: messageToSend,
+          conversationId: params.id,
+          language: conversation?.language || 'en',
+          level: conversation?.level || 'beginner',
+        })
+
+        const aiMessage = {
+          id: Date.now() + 1,
+          role: 'assistant',
+          content: response.data.message,
+          suggestions: response.data.suggestions,
+          grammarCorrections: response.data.grammarCorrections,
+          timestamp: new Date(),
+        }
+        setMessages((prev) => [...prev, aiMessage])
       }
-
-      // Add user message to UI immediately
-      setMessages(prev => [...prev, userMessage])
-      setNewMessage('')
-
-      // Send to backend
-      const response = await conversationAPI.sendMessage({
-        message: newMessage,
-        conversationId: params.id,
-        language: conversation?.language || 'en',
-        level: conversation?.level || 'beginner'
-      })
-
-      // Add AI response to UI
-      const aiMessage = {
-        id: Date.now() + 1,
-        role: 'assistant',
-        content: response.data.message,
-        suggestions: response.data.suggestions,
-        grammarCorrections: response.data.grammarCorrections,
-        timestamp: new Date()
-      }
-      setMessages(prev => [...prev, aiMessage])
     } catch (err) {
       setError('Failed to send message')
       console.error('Send message error:', err)
@@ -106,10 +159,17 @@ export default function ConversationDetail({ params }: { params: { id: string } 
     }
   }
 
+  const aiUnavailable = messages.some(
+    (m) =>
+      m.role === 'assistant' &&
+      typeof m.content === 'string' &&
+      m.content.includes("trouble connecting to the AI tutor")
+  )
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <Spinner className="h-12 w-12 text-blue-600" />
       </div>
     )
   }
@@ -124,18 +184,24 @@ export default function ConversationDetail({ params }: { params: { id: string } 
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden flex flex-col h-[calc(100vh-200px)]">
+          <div className="bg-card rounded-xl shadow-lg overflow-hidden flex flex-col h-[calc(100vh-200px)]">
             {/* Header */}
-            <div className="border-b border-gray-200 dark:border-gray-700 p-4">
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+            <div className="border-b border-border p-4">
+              <h1 className="text-xl font-bold text-foreground">
                 {conversation?.title || `Conversation in ${conversation?.language || 'English'}`}
               </h1>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-muted-foreground">
                 Level: {conversation?.level || 'Beginner'}
               </p>
             </div>
+
+            {aiUnavailable && (
+              <div className="bg-amber-50 text-amber-800 text-xs px-4 py-2 border-b border-amber-200">
+                AI tutor is temporarily unavailable. You can still practice by writing messages; responses may be limited.
+              </div>
+            )}
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4">
@@ -148,8 +214,8 @@ export default function ConversationDetail({ params }: { params: { id: string } 
                     <div
                       className={`max-w-[80%] rounded-lg p-4 ${
                         message.role === 'user'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-secondary text-secondary-foreground'
                       }`}
                     >
                       <div className="flex items-center mb-1">
@@ -165,7 +231,7 @@ export default function ConversationDetail({ params }: { params: { id: string } 
                       <p className="whitespace-pre-wrap">{message.content}</p>
                       
                       {message.suggestions && message.suggestions.length > 0 && (
-                        <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                        <div className="mt-2 pt-2 border-t border-border/50">
                           <p className="text-xs font-medium mb-1">Suggestions:</p>
                           <ul className="text-xs list-disc pl-4 space-y-1">
                             {message.suggestions.map((suggestion: string, index: number) => (
@@ -182,24 +248,24 @@ export default function ConversationDetail({ params }: { params: { id: string } 
             </div>
 
             {/* Input */}
-            <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+            <div className="border-t border-border p-4">
               <div className="flex">
                 <textarea
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Type your message..."
-                  className="flex-1 border border-gray-300 dark:border-gray-600 rounded-l-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  className="flex-1 border border-border rounded-l-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary bg-background"
                   rows={1}
                   disabled={sending}
                 />
                 <button
                   onClick={sendMessage}
                   disabled={sending || !newMessage.trim()}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-r-lg hover:bg-blue-700 disabled:opacity-50 flex items-center"
+                  className="bg-primary text-primary-foreground px-4 py-2 rounded-r-lg hover:bg-primary/90 disabled:opacity-50 flex items-center"
                 >
                   {sending ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <Spinner className="h-5 w-5" />
                   ) : (
                     <Send className="h-5 w-5" />
                   )}
