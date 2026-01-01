@@ -1,5 +1,6 @@
 import { BookOpen, MessageCircle, Mic, Brain, Trophy, Target } from "lucide-react"
 import Link from "next/link"
+import { Card, CardContent } from '@/components/ui/card'
 
 export default function Home() {
   return (
@@ -34,36 +35,72 @@ export default function Home() {
             <p className="mt-4 text-muted-foreground">Our platform is packed with features to help you learn faster and smarter.</p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <FeatureCard
-              icon={<BookOpen className="h-8 w-8 text-primary" />}
-              title="Interactive Lessons"
-              description="Practice with structured lessons tailored to your level and goals."
-            />
-            <FeatureCard
-              icon={<MessageCircle className="h-8 w-8 text-primary" />}
-              title="AI Conversations"
-              description="Practice speaking with intelligent AI tutors that adapt to your level."
-            />
-            <FeatureCard
-              icon={<Mic className="h-8 w-8 text-primary" />}
-              title="Pronunciation Analysis"
-              description="Get real-time feedback on your pronunciation and speaking skills."
-            />
-            <FeatureCard
-              icon={<Target className="h-8 w-8 text-primary" />}
-              title="Adaptive Learning"
-              description="Personalized lessons that adjust to your progress and learning style."
-            />
-            <FeatureCard
-              icon={<Trophy className="h-8 w-8 text-primary" />}
-              title="Achievement System"
-              description="Track your progress and earn badges as you learn."
-            />
-            <FeatureCard
-              icon={<Brain className="h-8 w-8 text-primary" />}
-              title="Smart Analytics"
-              description="Track your progress with detailed insights and learning analytics."
-            />
+            <Card className="text-center p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+              <CardContent className="p-0 pt-6">
+                <div className="mb-4"><BookOpen className="h-8 w-8 text-primary mx-auto" /></div>
+                <h3 className="text-xl font-semibold text-foreground mb-2">
+                  Interactive Lessons
+                </h3>
+                <p className="text-muted-foreground">
+                  Practice with structured lessons tailored to your level and goals.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="text-center p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+              <CardContent className="p-0 pt-6">
+                <div className="mb-4"><MessageCircle className="h-8 w-8 text-primary mx-auto" /></div>
+                <h3 className="text-xl font-semibold text-foreground mb-2">
+                  AI Conversations
+                </h3>
+                <p className="text-muted-foreground">
+                  Practice speaking with intelligent AI tutors that adapt to your level.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="text-center p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+              <CardContent className="p-0 pt-6">
+                <div className="mb-4"><Mic className="h-8 w-8 text-primary mx-auto" /></div>
+                <h3 className="text-xl font-semibold text-foreground mb-2">
+                  Pronunciation Analysis
+                </h3>
+                <p className="text-muted-foreground">
+                  Get real-time feedback on your pronunciation and speaking skills.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="text-center p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+              <CardContent className="p-0 pt-6">
+                <div className="mb-4"><Target className="h-8 w-8 text-primary mx-auto" /></div>
+                <h3 className="text-xl font-semibold text-foreground mb-2">
+                  Adaptive Learning
+                </h3>
+                <p className="text-muted-foreground">
+                  Personalized lessons that adjust to your progress and learning style.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="text-center p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+              <CardContent className="p-0 pt-6">
+                <div className="mb-4"><Trophy className="h-8 w-8 text-primary mx-auto" /></div>
+                <h3 className="text-xl font-semibold text-foreground mb-2">
+                  Achievement System
+                </h3>
+                <p className="text-muted-foreground">
+                  Track your progress and earn badges as you learn.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="text-center p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+              <CardContent className="p-0 pt-6">
+                <div className="mb-4"><Brain className="h-8 w-8 text-primary mx-auto" /></div>
+                <h3 className="text-xl font-semibold text-foreground mb-2">
+                  Smart Analytics
+                </h3>
+                <p className="text-muted-foreground">
+                  Track your progress with detailed insights and learning analytics.
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
@@ -95,16 +132,3 @@ export default function Home() {
   );
 }
 
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
-  return (
-    <div className="text-center p-6 bg-card rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-      <div className="mb-4">{icon}</div>
-      <h3 className="text-xl font-semibold text-foreground mb-2">
-        {title}
-      </h3>
-      <p className="text-muted-foreground">
-        {description}
-      </p>
-    </div>
-  )
-}
