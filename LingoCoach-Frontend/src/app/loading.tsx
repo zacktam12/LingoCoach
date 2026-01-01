@@ -1,14 +1,25 @@
 import { Spinner } from '../components/ui/spinner'
+import { Card, CardContent } from '@/components/ui/card'
+import { Loader2 } from 'lucide-react'
 
 export default function GlobalLoading() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="flex flex-col items-center space-y-4">
-        <Spinner className="h-10 w-10 text-blue-600" />
-        <p className="text-gray-700 dark:text-gray-300">
-          Loading your LingoCoach experience...
-        </p>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <Card className="w-full max-w-sm p-8 text-center">
+        <CardContent className="space-y-4 p-0">
+          <div className="flex justify-center">
+            <Loader2 className="h-10 w-10 text-primary animate-spin" />
+          </div>
+          <p className="text-lg text-foreground">
+            Loading your LingoCoach experience...
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}          </p>
+        </CardContent>
+      </Card>
     </div>
   )
 }
