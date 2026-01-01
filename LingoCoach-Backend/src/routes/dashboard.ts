@@ -220,4 +220,80 @@ router.get('/achievements/all', authenticateToken, async (req: AuthRequest, res:
   }
 })
 
+// Get personalized recommendations for the user
+router.get('/recommendations', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    
+    // Get user's preferences
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        targetLanguage: true,
+        learningLevel: true,
+        preferences: true
+      }
+    })
+    
+    const targetLanguage = user?.targetLanguage || 'en'
+    const learningLevel = user?.learningLevel || 'beginner'
+    
+    // Get user's recent activity
+    const [recentLessons, recentConversations] = await Promise.all([
+      prisma.userLesson.findMany({
+        where: { userId },
+        include: { lesson: true },
+        orderBy: { completedAt: 'desc' },
+        take: 5
+      }),
+      prisma.conversation.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: 5
+      })
+    ])
+    
+    // Find next recommended lesson based on user's progress
+    let recommendedLesson = null
+    
+    // Get lessons that the user hasn't completed yet
+    const allLessons = await prisma.lesson.findMany({
+      where: {
+        language: targetLanguage,
+        level: learningLevel,
+      },
+      orderBy: { order: 'asc' }
+    })
+    
+    const completedLessonIds = new Set(recentLessons.map(l => l.lessonId))
+    const nextLesson = allLessons.find(lesson => !completedLessonIds.has(lesson.id))
+    
+    if (nextLesson) {
+      recommendedLesson = {
+        id: nextLesson.id,
+        title: nextLesson.title,
+        language: nextLesson.language,
+        level: nextLesson.level,
+        description: nextLesson.description
+      }
+    }
+    
+    // Find recommended conversation topic
+    const recommendedConversation = {
+      language: targetLanguage,
+      level: learningLevel,
+      suggestedTopic: 'Daily conversation practice', // This could be personalized based on user interests
+    }
+    
+    res.json({
+      recommendedLesson,
+      recommendedConversation
+    })
+    
+  } catch (error) {
+    console.error('Get recommendations error:', error)
+    res.status(500).json({ error: 'Failed to fetch recommendations' })
+  }
+})
+
 export { router as dashboardRoutes }
