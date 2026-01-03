@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { dashboardAPI } from '@/lib/api'
 import { Trophy, Star, Award, Target, BookOpen, MessageCircle, Mic } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function Achievements() {
   const [userAchievements, setUserAchievements] = useState<any[]>([])
@@ -67,96 +68,107 @@ export default function Achievements() {
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {/* Stats Cards */}
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center">
-            <Trophy className="h-10 w-10 mr-4" />
-            <div>
-              <p className="text-sm opacity-80">Total Achievements</p>
-              <p className="text-2xl font-bold">{userAchievements.length}</p>
+        <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <Trophy className="h-10 w-10 mr-4" />
+              <div>
+                <p className="text-sm opacity-80">Total Achievements</p>
+                <p className="text-2xl font-bold">{userAchievements.length}</p>
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
         
-        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center">
-            <Star className="h-10 w-10 mr-4" />
-            <div>
-              <p className="text-sm opacity-80">Points Earned</p>
-              <p className="text-2xl font-bold">
-                {userAchievements.reduce((sum, ua) => sum + (ua.achievement.points || 0), 0)}
-              </p>
+        <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <Star className="h-10 w-10 mr-4" />
+              <div>
+                <p className="text-sm opacity-80">Points Earned</p>
+                <p className="text-2xl font-bold">
+                  {userAchievements.reduce((sum, ua) => sum + (ua.achievement.points || 0), 0)}
+                </p>
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
         
-        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center">
-            <Target className="h-10 w-10 mr-4" />
-            <div>
-              <p className="text-sm opacity-80">Completion</p>
-              <p className="text-2xl font-bold">
-                {allAchievements.length > 0 
-                  ? Math.round((userAchievements.length / allAchievements.length) * 100) 
-                  : 0}%
-              </p>
+        <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <Target className="h-10 w-10 mr-4" />
+              <div>
+                <p className="text-sm opacity-80">Completion</p>
+                <p className="text-2xl font-bold">
+                  {allAchievements.length > 0 
+                    ? Math.round((userAchievements.length / allAchievements.length) * 100) 
+                    : 0}%
+                </p>
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
       
       {/* Achievements by Category */}
       <div className="space-y-8">
         {Object.entries(achievementsByCategory).map(([category, achievements]) => (
-          <div key={category} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-              {getCategoryIcon(category)}
-              <span className="ml-2 capitalize">{category}</span>
-            </h2>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {(achievements as any[]).map((achievement) => {
-                const isEarned = userAchievementIds.has(achievement.id)
-                const userAchievement = userAchievements.find(ua => ua.achievementId === achievement.id)
-                
-                return (
-                  <div 
-                    key={achievement.id}
-                    className={`border rounded-lg p-4 transition-all ${
-                      isEarned 
-                        ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
-                        : 'border-gray-200 dark:border-gray-700 opacity-70'
-                    }`}
-                  >
-                    <div className="flex items-start">
-                      <div className={`p-2 rounded-lg mr-3 ${
+          <Card key={category}>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                {getCategoryIcon(category)}
+                <span className="ml-2 capitalize">{category}</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {(achievements as any[]).map((achievement) => {
+                  const isEarned = userAchievementIds.has(achievement.id)
+                  const userAchievement = userAchievements.find(ua => ua.achievementId === achievement.id)
+                  
+                  return (
+                    <Card 
+                      key={achievement.id}
+                      className={`border transition-all ${
                         isEarned 
-                          ? 'bg-green-100 dark:bg-green-800 text-green-600 dark:text-green-300' 
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-400'
-                      }`}>
-                        <Trophy size={20} />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900 dark:text-white">{achievement.name}</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          {achievement.description}
-                        </p>
-                        <div className="flex items-center justify-between mt-2">
-                          <span className="text-xs font-medium px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-gray-600 dark:text-gray-300">
-                            {achievement.points} pts
-                          </span>
-                          {isEarned && userAchievement && (
-                            <span className="text-xs text-green-600 dark:text-green-400">
-                              Earned {new Date(userAchievement.earnedAt).toLocaleDateString()}
-                            </span>
-                          )}
+                          ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
+                          : 'border-gray-200 dark:border-gray-700 opacity-70'
+                      }`}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start">
+                          <div className={`p-2 rounded-lg mr-3 ${
+                            isEarned 
+                              ? 'bg-green-100 dark:bg-green-800 text-green-600 dark:text-green-300' 
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-400'
+                          }`}>
+                            <Trophy size={20} />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-medium text-gray-900 dark:text-white">{achievement.name}</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                              {achievement.description}
+                            </p>
+                            <div className="flex items-center justify-between mt-2">
+                              <span className="text-xs font-medium px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-gray-600 dark:text-gray-300">
+                                {achievement.points} pts
+                              </span>
+                              {isEarned && userAchievement && (
+                                <span className="text-xs text-green-600 dark:text-green-400">
+                                  Earned {new Date(userAchievement.earnedAt).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
     </div>
