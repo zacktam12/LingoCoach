@@ -17,9 +17,4 @@ export default function GlobalLoading() {
       </Card>
     </div>
   )
-}          </p>
-        </CardContent>
-      </Card>
-    </div>
-  )
 }
