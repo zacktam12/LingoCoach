@@ -1,15 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Mic, Square, RotateCcw } from 'lucide-react'
+import { Mic, MicOff, Play, Square, RotateCcw } from 'lucide-react'
 import { pronunciationAPI, userAPI } from '@/lib/api'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 
 export default function PronunciationPractice() {
   const [isRecording, setIsRecording] = useState(false)
@@ -140,36 +133,32 @@ export default function PronunciationPractice() {
   }
 
   return (
-    <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold">Pronunciation Practice</CardTitle>
-      </CardHeader>
-      <CardContent className="p-6">
+    <div className="max-w-2xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Pronunciation Practice</h2>
       {isAiDegraded && (
-        <Alert className="mb-4">
-          <AlertDescription>
-            Pronunciation AI is temporarily unavailable. You can still record and listen to yourself while it recovers.
-          </AlertDescription>
-        </Alert>
+        <div className="mb-4 p-3 text-xs rounded-md bg-amber-50 text-amber-800 border border-amber-200">
+          Pronunciation AI is temporarily unavailable. You can still record and listen to yourself while it recovers.
+        </div>
       )}
       
       <div className="space-y-6">
         {/* Language Selection */}
         <div>
-          <Label htmlFor="language">Language</Label>
-          <Select value={language} onValueChange={setLanguage}>
-            <SelectTrigger id="language">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="en">English</SelectItem>
-              <SelectItem value="es">Spanish</SelectItem>
-              <SelectItem value="fr">French</SelectItem>
-              <SelectItem value="de">German</SelectItem>
-              <SelectItem value="it">Italian</SelectItem>
-              <SelectItem value="pt">Portuguese</SelectItem>
-            </SelectContent>
-          </Select>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Language
+          </label>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+          >
+            <option value="en">English</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="it">Italian</option>
+            <option value="pt">Portuguese</option>
+          </select>
         </div>
         
         {/* Text Input */}
