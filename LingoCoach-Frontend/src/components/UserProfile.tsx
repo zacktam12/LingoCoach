@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { userAPI, authAPI } from '@/lib/api'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function UserProfile() {
   const [profile, setProfile] = useState<any>(null)
@@ -103,48 +105,48 @@ export default function UserProfile() {
     <div className="max-w-4xl mx-auto p-6">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">User Profile</h1>
-        <button
+        <Button
           onClick={handleLogout}
-          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+          variant="destructive"
         >
           Log out
-        </button>
+        </Button>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Profile Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Profile Information</h2>
-            {!isEditing ? (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                Edit
-              </button>
-            ) : (
-              <div className="space-x-2">
-                <button
-                  onClick={updateProfile}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle>Profile Information</CardTitle>
+              {!isEditing ? (
+                <Button
+                  onClick={() => setIsEditing(true)}
                 >
-                  Save
-                </button>
-                <button
-                  onClick={() => {
-                    setIsEditing(false)
-                    setName(profile.name || '')
-                  }}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-700"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-          </div>
-          
-          <div className="space-y-4">
+                  Edit
+                </Button>
+              ) : (
+                <div className="space-x-2">
+                  <Button
+                    onClick={updateProfile}
+                    variant="secondary"
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setIsEditing(false)
+                      setName(profile.name || '')
+                    }}
+                    variant="secondary"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Name
@@ -176,44 +178,44 @@ export default function UserProfile() {
                 {new Date(profile.createdAt).toLocaleDateString()}
               </p>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
         
         {/* Preferences Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Learning Preferences</h2>
-            {!isEditingPreferences ? (
-              <button
-                onClick={() => setIsEditingPreferences(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                Edit
-              </button>
-            ) : (
-              <div className="space-x-2">
-                <button
-                  onClick={updatePreferences}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle>Learning Preferences</CardTitle>
+              {!isEditingPreferences ? (
+                <Button
+                  onClick={() => setIsEditingPreferences(true)}
                 >
-                  Save
-                </button>
-                <button
-                  onClick={() => {
-                    setIsEditingPreferences(false)
-                    setTargetLanguage(preferences?.targetLanguage || 'es')
-                    setLearningLevel(preferences?.learningLevel || 'beginner')
-                    setDailyGoal(preferences?.dailyGoal || 15)
-                  }}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-700"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-          </div>
-          
-          <div className="space-y-4">
+                  Edit
+                </Button>
+              ) : (
+                <div className="space-x-2">
+                  <Button
+                    onClick={updatePreferences}
+                    variant="secondary"
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setIsEditingPreferences(false)
+                      setTargetLanguage(preferences?.targetLanguage || 'es')
+                      setLearningLevel(preferences?.learningLevel || 'beginner')
+                      setDailyGoal(preferences?.dailyGoal || 15)
+                    }}
+                    variant="secondary"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Target Language
@@ -277,8 +279,8 @@ export default function UserProfile() {
                 <p className="text-gray-900 dark:text-white">{preferences?.dailyGoal || 15} minutes</p>
               )}
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
