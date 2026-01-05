@@ -1,6 +1,7 @@
 import { BookOpen, MessageCircle, Mic, Brain, Trophy, Target } from "lucide-react"
 import Link from "next/link"
 import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 
 export default function Home() {
   return (
@@ -17,12 +18,16 @@ export default function Home() {
             real-time feedback, and adaptive learning paths designed just for you.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in" style={{ animationDelay: '0.4s' }}>
-            <Link href="/auth/signup" className="px-8 py-4 bg-primary text-primary-foreground text-lg rounded-md hover:bg-primary/90 transition-colors">
-              Start Learning Free
-            </Link>
-            <Link href="#features" className="px-8 py-4 border border-border text-foreground text-lg rounded-md hover:bg-accent transition-colors">
-              Explore Features
-            </Link>
+            <Button asChild size="lg">
+              <Link href="/auth/signup">
+                Start Learning Free
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="lg">
+              <Link href="#features">
+                Explore Features
+              </Link>
+            </Button>
           </div>
         </div>
       </main>
@@ -114,9 +119,11 @@ export default function Home() {
           <p className="text-lg text-muted-foreground mb-8">
             Join thousands of learners already mastering new languages with LingoCoach.
           </p>
-          <Link href="/auth/signup" className="px-8 py-4 bg-primary text-primary-foreground text-lg rounded-md hover:bg-primary/90 transition-colors">
-            Begin Learning Now
-          </Link>
+          <Button asChild size="lg">
+            <Link href="/auth/signup">
+              Begin Learning Now
+            </Link>
+          </Button>
         </div>
       </section>
 
