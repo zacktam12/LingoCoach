@@ -57,8 +57,10 @@ src/
 ├── routes/                # API route handlers
 │   ├── auth.ts           # Authentication routes
 │   ├── conversations.ts  # AI conversation routes
-│   ├── lessons.ts       # Lesson management
-│   └── dashboard.ts      # User statistics
+│   ├── lessons.ts        # Lesson management
+│   ├── dashboard.ts      # User statistics
+│   ├── users.ts          # User profile management
+│   └── pronunciation.ts  # Pronunciation analysis
 ├── services/             # Business logic
 │   ├── ai.ts            # AI service integration
 │   ├── auth.ts          # Authentication service
@@ -138,6 +140,18 @@ FRONTEND_URL=http://localhost:3000
 ### Dashboard
 - `GET /api/dashboard/stats` - Get user statistics
 - `GET /api/dashboard/progress` - Get learning progress
+- `GET /api/dashboard/achievements` - Get user achievements
+- `GET /api/dashboard/achievements/all` - Get all achievements
+
+### User Management
+- `GET /api/users/profile` - Get user profile
+- `PUT /api/users/profile` - Update user profile
+- `GET /api/users/preferences` - Get user preferences
+- `PUT /api/users/preferences` - Update user preferences
+
+### Pronunciation Analysis
+- `POST /api/pronunciation/analyze` - Analyze pronunciation
+- `GET /api/pronunciation/history` - Get pronunciation history
 
 ## 🔌 WebSocket Events
 
@@ -156,6 +170,7 @@ FRONTEND_URL=http://localhost:3000
 - Grammar checking
 - Learning suggestions
 - Context-aware responses
+- Pronunciation analysis
 
 ### Speech Processing
 - Speech-to-text recognition
