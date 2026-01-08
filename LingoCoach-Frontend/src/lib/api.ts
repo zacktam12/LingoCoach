@@ -90,11 +90,7 @@ export const lessonAPI = {
 
 export const pronunciationAPI = {
   analyze: (formData: FormData) =>
-    api.post('/api/pronunciation/analyze', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    }),
+    api.post('/api/pronunciation/analyze', formData),
   getHistory: () => api.get('/api/pronunciation/history'),
 }
 
