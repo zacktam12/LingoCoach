@@ -49,7 +49,7 @@ router.get('/stats', authenticateToken, async (req: AuthRequest, res: Response) 
 
     // Calculate streak days (simplified)
     const streakDays = lastActivity 
-      ? Math.max(0, Math.floor((Date.now() - lastActivity.completedAt.getTime()) / (1000 * 60 * 60 * 24)))
+      ? Math.max(0, Math.floor((new Date().getTime() - lastActivity.completedAt.getTime()) / (1000 * 60 * 60 * 24)))
       : 0
 
     res.json({
