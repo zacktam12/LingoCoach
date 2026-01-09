@@ -83,7 +83,7 @@ router.post('/analyze', authenticateToken, upload.single('audio'), async (req: A
     const pronunciationAnalysis = await prisma.pronunciationAnalysis.create({
       data: {
         userId,
-        audioUrl: audioFile.path,
+        audioUrl: `/uploads/${path.basename(audioFile.path)}`,
         text,
         score: analysisResult.score,
         feedback: analysisResult.feedback
