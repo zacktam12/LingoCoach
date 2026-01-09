@@ -147,12 +147,21 @@ io.on('connection', (socket) => {
       ]
 
       // Persist messages to the conversation history
+      const existingConversation = await prisma.conversation.findUnique({
+        where: { id: conversationId },
+        select: { messages: true }
+      })
+      
+      // Ensure existing messages are properly typed
+      const existingMessages = Array.isArray(existingConversation?.messages) ? 
+        existingConversation.messages : [];
+      
+      const updatedMessages = [...existingMessages, ...newMessages]
+      
       await prisma.conversation.update({
         where: { id: conversationId },
         data: {
-          messages: {
-            push: newMessages
-          },
+          messages: updatedMessages,
           updatedAt: new Date()
         }
       })
