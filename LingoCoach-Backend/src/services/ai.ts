@@ -1,4 +1,30 @@
 import OpenAI from 'openai'
+import speech from '@google-cloud/speech'
+import LanguageToolApi from 'languagetool-api'
+import path from 'path'
+import fs from 'fs'
+import { prisma } from '../lib/database'
+
+const client = new speech.SpeechClient()
+const languageTool = new LanguageToolApi({
+  endpoint: process.env.LANGUAGETOOL_ENDPOINT || 'https://api.languagetool.org',
+})
+
+interface PronunciationAnalysisResult {
+  score: number;
+  feedback: {
+    errors: string[];
+    suggestions: string[];
+  };
+}
+
+interface WordLevelDetails {
+  word: string;
+  startTime: number;
+  endTime: number;
+  confidence: number;
+  pronunciationAccuracy: number;
+}
 
 export interface ConversationMessage {
   role: 'system' | 'user' | 'assistant'
@@ -83,84 +109,290 @@ export class DeepSeekService {
 
   async checkGrammar(text: string, language: string): Promise<GrammarCorrection[]> {
     try {
-      const response = await this.client.chat.completions.create({
-        model: 'deepseek-chat',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a grammar checker for ${language}. Analyze the text and provide corrections with explanations.`
-          },
-          {
-            role: 'user',
-            content: `Please check the grammar of this text: "${text}"`
-          }
-        ],
-        temperature: 0.3,
-        max_tokens: 500
-      })
-
-      return this.parseGrammarResponse(response.choices[0]?.message?.content || '')
+      // Use LanguageTool API for professional grammar checking
+      const langCode = this.convertLanguageToISO(language);
+      const response = await languageTool.check(text, langCode);
+        
+      const corrections: GrammarCorrection[] = [];
+        
+      // Process LanguageTool results into our format
+      for (const match of response.matches) {
+        if (match.replacements && match.replacements.length > 0) {
+          const original = text.substring(match.offset, match.offset + match.length);
+          const corrected = match.replacements[0].value;
+          const explanation = match.message;
+            
+          corrections.push({
+            original,
+            corrected,
+            explanation,
+            confidence: 0.9 // LanguageTool typically provides high-confidence corrections
+          });
+        }
+      }
+        
+      return corrections;
     } catch (error) {
-      console.error('Grammar check error:', error)
-      return []
+      console.error('Grammar check error:', error);
+      // Fallback to the original implementation if LanguageTool fails
+      try {
+        const response = await this.client.chat.completions.create({
+          model: 'deepseek-chat',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a grammar checker for ${language}. Analyze the text and provide corrections with explanations.`
+            },
+            {
+              role: 'user',
+              content: `Please check the grammar of this text: "${text}"`
+            }
+          ],
+          temperature: 0.3,
+          max_tokens: 500
+        });
+  
+        return this.parseGrammarResponse(response.choices[0]?.message?.content || '');
+      } catch (fallbackError) {
+        console.error('Fallback grammar check error:', fallbackError);
+        return [];
+      }
     }
   }
+    
+  private convertLanguageToISO(language: string): string {
+    // Convert language names to ISO codes for LanguageTool
+    const languageMap: Record<string, string> = {
+      'en': 'en-US',
+      'english': 'en-US',
+      'es': 'es',
+      'spanish': 'es',
+      'fr': 'fr',
+      'french': 'fr',
+      'de': 'de',
+      'german': 'de',
+      'it': 'it',
+      'italian': 'it',
+      'pt': 'pt-PT',
+      'portuguese': 'pt-PT',
+    };
+      
+    return languageMap[language.toLowerCase()] || 'en-US';
+  }
 
-  async analyzePronunciation(text: string, language: string): Promise<{ score: number; feedback: any }> {
+  async analyzePronunciation(
+    audioFilePath: string,
+    expectedText: string,
+    languageCode: string
+  ): Promise<PronunciationAnalysisResult> {
     try {
-      const response = await this.client.chat.completions.create({
-        model: 'deepseek-chat',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a pronunciation expert for ${language}. Analyze the pronunciation of the given text and provide feedback.`
-          },
-          {
-            role: 'user',
-            content: `Please analyze the pronunciation of this text: "${text}". Provide a score from 0-100 and detailed feedback. Format your response as JSON with "score" and "feedback" fields.`
-          }
-        ],
-        temperature: 0.3,
-        max_tokens: 500
-      });
+      // Read the audio file
+      const audioContent = fs.readFileSync(audioFilePath)
+      const audioBytes = audioContent.toString('base64')
 
-      // Try to parse the response as JSON
-      try {
-        const jsonResponse = JSON.parse(response.choices[0]?.message?.content || '{}');
+      // Configure the request for pronunciation analysis
+      const request = {
+        audio: {
+          content: audioBytes,
+        },
+        config: {
+          encoding: 'WEBM_OPUS' as const, // Adjust based on your audio format
+          sampleRateHertz: 48000, // Adjust based on your audio sample rate
+          languageCode: languageCode,
+        },
+        // Enable pronunciation assessment for detailed feedback
+        enableWordTimeOffsets: true,
+        enableAutomaticPunctuation: true,
+        enableSpeakerDiarization: false,
+      }
+
+      // Perform the speech recognition
+      const [response] = await client.recognize(request as any)
+      
+      const transcription = response.results
+        ?.map((result: any) => result.alternatives?.[0]?.transcript)
+        .join(' ')
+        .toLowerCase()
+        .trim()
+
+      // If no transcription was detected, return failure result
+      if (!transcription) {
         return {
-          score: jsonResponse.score || 85,
-          feedback: jsonResponse.feedback || {
-            errors: [],
-            suggestions: [
-              "Good pronunciation overall!",
-              "Try to emphasize the stress on longer words",
-              "Practice the 'th' sound more"
-            ]
-          }
-        };
-      } catch (parseError) {
-        // If JSON parsing fails, return a default response
-        return {
-          score: 85,
+          score: 0,
           feedback: {
-            errors: [],
-            suggestions: [
-              "Good pronunciation overall!",
-              "Try to emphasize the stress on longer words",
-              "Practice the 'th' sound more"
-            ]
+            errors: ["No speech detected in audio"],
+            suggestions: ["Try speaking louder or closer to the microphone"]
           }
-        };
+        }
+      }
+
+      // Calculate similarity between expected text and transcription
+      const similarity = this.calculateSimilarity(expectedText.toLowerCase(), transcription)
+      
+      // Convert similarity to score (0-100)
+      const score = Math.round(similarity * 100)
+      
+      // Extract word-level details if available
+      const wordDetails: WordLevelDetails[] = []
+      
+      // Process each result to get word-level information
+      if (response.results && response.results.length > 0) {
+        for (const result of response.results) {
+          if (result.alternatives && result.alternatives.length > 0) {
+            const alternative = result.alternatives[0]
+            
+            if (alternative.words) {
+              for (const wordInfo of alternative.words) {
+                const word = wordInfo.word?.toLowerCase() || ''
+                const startTime = Number(wordInfo.startTime?.seconds) || 0
+                const endTime = Number(wordInfo.endTime?.seconds) || 0
+                const confidence = Number(wordInfo.confidence) || 0
+                
+                // Calculate pronunciation accuracy for this word
+                const expectedWords = expectedText.toLowerCase().split(' ')
+                const pronunciationAccuracy = this.assessWordPronunciation(word, expectedWords)
+                
+                if (word) {
+                  wordDetails.push({
+                    word,
+                    startTime,
+                    endTime,
+                    confidence,
+                    pronunciationAccuracy
+                  })
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      // Generate feedback based on the analysis
+      const feedback = this.generatePronunciationFeedback(transcription, expectedText, wordDetails)
+      
+      return {
+        score,
+        feedback
       }
     } catch (error) {
-      console.error('Pronunciation analysis error:', error);
+      console.error('Pronunciation analysis error:', error)
       return { 
         score: 0, 
         feedback: { 
           errors: ["Failed to analyze pronunciation"], 
           suggestions: ["Please try again later"] 
         } 
-      };
+      }
+    }
+  }
+
+  private calculateSimilarity(str1: string, str2: string): number {
+    // Simple similarity calculation using Levenshtein distance concept
+    const cleanStr1 = str1.replace(/[\W_]/g, '')
+    const cleanStr2 = str2.replace(/[\W_]/g, '')
+    
+    if (cleanStr1 === cleanStr2) return 1
+    
+    const longer = cleanStr1.length > cleanStr2.length ? cleanStr1 : cleanStr2
+    const shorter = cleanStr1.length > cleanStr2.length ? cleanStr2 : cleanStr1
+    
+    if (longer.length === 0) return 1.0
+    
+    const editDistance = this.levenshteinDistance(cleanStr1, cleanStr2)
+    return (longer.length - editDistance) / longer.length
+  }
+
+  private levenshteinDistance(str1: string, str2: string): number {
+    const matrix = Array(str2.length + 1)
+      .fill(0)
+      .map(() => Array(str1.length + 1).fill(0))
+
+    for (let i = 0; i <= str1.length; i++) {
+      matrix[0][i] = i
+    }
+
+    for (let j = 0; j <= str2.length; j++) {
+      matrix[j][0] = j
+    }
+
+    for (let j = 1; j <= str2.length; j++) {
+      for (let i = 1; i <= str1.length; i++) {
+        const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1
+        matrix[j][i] = Math.min(
+          matrix[j][i - 1] + 1, // insertion
+          matrix[j - 1][i] + 1, // deletion
+          matrix[j - 1][i - 1] + indicator // substitution
+        )
+      }
+    }
+
+    return matrix[str2.length][str1.length]
+  }
+
+  private assessWordPronunciation(word: string, expectedWords: string[]): number {
+    // Check if the word is similar to any of the expected words
+    let maxSimilarity = 0
+    
+    for (const expectedWord of expectedWords) {
+      const similarity = this.calculateSimilarity(word, expectedWord)
+      if (similarity > maxSimilarity) {
+        maxSimilarity = similarity
+      }
+    }
+    
+    return maxSimilarity
+  }
+
+  private generatePronunciationFeedback(
+    actualTranscription: string, 
+    expectedText: string, 
+    wordDetails: WordLevelDetails[]
+  ): {
+    errors: string[];
+    suggestions: string[];
+  } {
+    const errors: string[] = []
+    const suggestions: string[] = []
+    
+    // Compare actual vs expected text
+    const actualWords = actualTranscription.split(' ')
+    const expectedWords = expectedText.toLowerCase().split(' ')
+    
+    // Identify mispronounced words
+    const mispronouncedWords: string[] = []
+    
+    for (let i = 0; i < Math.min(actualWords.length, expectedWords.length); i++) {
+      const actualWord = actualWords[i]
+      const expectedWord = expectedWords[i]
+      
+      if (this.calculateSimilarity(actualWord, expectedWord) < 0.8) {
+        mispronouncedWords.push(expectedWord)
+      }
+    }
+    
+    if (mispronouncedWords.length > 0) {
+      errors.push(`Mispronounced words: ${mispronouncedWords.slice(0, 3).join(', ')}`)
+    }
+    
+    // Generate suggestions based on analysis
+    suggestions.push("Good pronunciation overall!")
+    
+    if (wordDetails.length > 0) {
+      // Calculate average confidence
+      const avgConfidence = wordDetails.reduce((sum, word) => sum + word.confidence, 0) / wordDetails.length
+      
+      if (avgConfidence < 0.7) {
+        suggestions.push("Try speaking more clearly and distinctly")
+      }
+    }
+    
+    // Add more specific suggestions
+    suggestions.push("Focus on vowel sounds for better clarity")
+    suggestions.push("Pay attention to word stress patterns")
+    
+    return {
+      errors,
+      suggestions
     }
   }
 
