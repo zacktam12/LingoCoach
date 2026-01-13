@@ -1,11 +1,13 @@
 import OpenAI from 'openai'
 import speech from '@google-cloud/speech'
+import textToSpeech from '@google-cloud/text-to-speech'
 import LanguageToolApi from 'languagetool-api'
 import path from 'path'
 import fs from 'fs'
 import { prisma } from '../lib/database'
 
 const client = new speech.SpeechClient()
+const ttsClient = new textToSpeech.TextToSpeechClient()
 const languageTool = new LanguageToolApi({
   endpoint: process.env.LANGUAGETOOL_ENDPOINT || 'https://api.languagetool.org',
 })
@@ -160,7 +162,7 @@ export class DeepSeekService {
     }
   }
     
-  private convertLanguageToISO(language: string): string {
+  convertLanguageToISO(language: string): string {
     // Convert language names to ISO codes for LanguageTool
     const languageMap: Record<string, string> = {
       'en': 'en-US',
@@ -178,6 +180,56 @@ export class DeepSeekService {
     };
       
     return languageMap[language.toLowerCase()] || 'en-US';
+  }
+  
+  async synthesizeSpeech(text: string, languageCode: string, outputFile: string): Promise<void> {
+    try {
+      const request = {
+        input: { text: text },
+        voice: {
+          languageCode: languageCode,
+          ssmlGender: 'NEUTRAL' as const,
+        },
+        audioConfig: {
+          audioEncoding: 'MP3' as const,
+        },
+      };
+      
+      const [response] = await ttsClient.synthesizeSpeech(request);
+      
+      if (response.audioContent) {
+        fs.writeFileSync(outputFile, response.audioContent as Buffer);
+      }
+    } catch (error) {
+      console.error('Text-to-speech error:', error);
+      throw error;
+    }
+  }
+  
+  async synthesizeSpeechBuffer(text: string, languageCode: string): Promise<Buffer> {
+    try {
+      const request = {
+        input: { text: text },
+        voice: {
+          languageCode: languageCode,
+          ssmlGender: 'NEUTRAL' as const,
+        },
+        audioConfig: {
+          audioEncoding: 'MP3' as const,
+        },
+      };
+      
+      const [response] = await ttsClient.synthesizeSpeech(request);
+      
+      if (response.audioContent) {
+        return response.audioContent as Buffer;
+      } else {
+        throw new Error('No audio content returned from TTS service');
+      }
+    } catch (error) {
+      console.error('Text-to-speech error:', error);
+      throw error;
+    }
   }
 
   async analyzePronunciation(
