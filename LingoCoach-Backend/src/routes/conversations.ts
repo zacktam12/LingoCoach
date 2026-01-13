@@ -139,4 +139,44 @@ router.delete('/:id', authenticateToken, async (req: AuthRequest, res: Response)
   }
 })
 
+// Text-to-speech for AI responses
+router.post('/speak', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const { text, language = 'en-US' } = req.body;
+    const userId = req.user!.id;
+    
+    if (!text) {
+      return res.status(400).json({ error: 'Text is required' });
+    }
+    
+    // Validate user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Convert language to proper format if needed
+    const languageCode = deepseek.convertLanguageToISO(language);
+    
+    // Generate speech
+    const audioBuffer = await deepseek.synthesizeSpeechBuffer(text, languageCode);
+    
+    // Set appropriate headers for audio streaming
+    res.set({
+      'Content-Type': 'audio/mpeg',
+      'Content-Length': audioBuffer.length.toString(),
+      'Content-Disposition': 'inline',
+    });
+    
+    res.send(audioBuffer);
+    
+  } catch (error) {
+    console.error('Text-to-speech error:', error);
+    res.status(500).json({ error: 'Failed to generate speech' });
+  }
+});
+
 export { router as conversationRoutes }
