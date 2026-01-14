@@ -7,6 +7,7 @@ import { Send, Bot, User } from 'lucide-react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { Spinner } from '@/components/ui/spinner'
 import { io, Socket } from 'socket.io-client'
+import SpeechSynthesis from '@/components/SpeechSynthesis'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
@@ -18,8 +19,10 @@ export default function ConversationDetail({ params }: { params: { id: string } 
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSocketConnected, setIsSocketConnected] = useState(false)
+  const [typingUsers, setTypingUsers] = useState<string[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const socketRef = useRef<Socket | null>(null)
+  const typingTimerRef = useRef<NodeJS.Timeout | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -59,8 +62,32 @@ export default function ConversationDetail({ params }: { params: { id: string } 
       setMessages((prev) => [...prev, aiMessage])
     })
 
+    // Listen for typing indicators
+    socket.on('typing', (data: any) => {
+      if (data.isTyping) {
+        setTypingUsers(prev => [...prev, data.sender || 'AI Tutor'])
+      } else {
+        setTypingUsers(prev => prev.filter(user => user !== data.sender))
+      }
+    })
+
+    // Listen for message receipts
+    socket.on('message-receipt', (data: any) => {
+      console.log('Message receipt:', data)
+      // Could be used to show delivery status
+    })
+
+    // Listen for read receipts
+    socket.on('message-read', (data: any) => {
+      console.log('Message read by:', data.readerId)
+      // Could be used to show read status
+    })
+
     return () => {
       socket.off('ai-response')
+      socket.off('typing')
+      socket.off('message-receipt')
+      socket.off('message-read')
       socket.disconnect()
       socketRef.current = null
     }
@@ -159,6 +186,31 @@ export default function ConversationDetail({ params }: { params: { id: string } 
     }
   }
 
+  const handleTyping = () => {
+    if (socketRef.current && isSocketConnected && params.id) {
+      socketRef.current.emit('start-typing', { conversationId: params.id })
+      
+      // Clear any existing timer
+      if (typingTimerRef.current) {
+        clearTimeout(typingTimerRef.current)
+      }
+      
+      // Set a new timer to stop typing after 1.5 seconds of inactivity
+      typingTimerRef.current = setTimeout(() => {
+        socketRef.current?.emit('stop-typing', { conversationId: params.id })
+      }, 1500)
+    }
+  }
+
+  // Clean up timers on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimerRef.current) {
+        clearTimeout(typingTimerRef.current)
+      }
+    }
+  }, [])
+
   const aiUnavailable = messages.some(
     (m) =>
       m.role === 'assistant' &&
@@ -228,7 +280,14 @@ export default function ConversationDetail({ params }: { params: { id: string } 
                           {message.role === 'user' ? 'You' : 'AI Tutor'}
                         </span>
                       </div>
-                      <p className="whitespace-pre-wrap">{message.content}</p>
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="whitespace-pre-wrap flex-1">{message.content}</p>
+                        {message.role === 'assistant' && (
+                          <div className="flex-shrink-0">
+                            <SpeechSynthesis text={message.content} language={conversation?.language || 'en'} />
+                          </div>
+                        )}
+                      </div>
                       
                       {message.suggestions && message.suggestions.length > 0 && (
                         <div className="mt-2 pt-2 border-t border-border/50">
@@ -243,6 +302,27 @@ export default function ConversationDetail({ params }: { params: { id: string } 
                     </div>
                   </div>
                 ))}
+                
+                {/* Typing Indicators */}
+                {typingUsers.length > 0 && (
+                  <div className="flex justify-start">
+                    <div className="max-w-[80%] rounded-lg p-3 bg-secondary text-secondary-foreground">
+                      <div className="flex items-center">
+                        <Bot className="h-4 w-4 mr-2" />
+                        <span className="text-xs font-medium">AI Tutor</span>
+                      </div>
+                      <div className="flex items-center mt-1">
+                        <div className="flex space-x-1">
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                        </div>
+                        <span className="ml-2 text-sm">is typing...</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <div ref={messagesEndRef} />
               </div>
             </div>
@@ -252,7 +332,10 @@ export default function ConversationDetail({ params }: { params: { id: string } 
               <div className="flex">
                 <textarea
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={(e) => {
+                    setNewMessage(e.target.value)
+                    handleTyping()
+                  }}
                   onKeyPress={handleKeyPress}
                   placeholder="Type your message..."
                   className="flex-1 border border-border rounded-l-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary bg-background"
