@@ -138,8 +138,14 @@ io.on('connection', (socket) => {
         return
       }
 
+      // Emit typing indicator
+      socket.to(conversationId).emit('typing', { isTyping: true, senderId: socket.id })
+
       // Process message with AI
       const response = await processMessageWithAI(message, language, level)
+
+      // Remove typing indicator
+      socket.to(conversationId).emit('typing', { isTyping: false, senderId: socket.id })
 
       const newMessages = [
         { role: 'user', content: message, timestamp: new Date() },
@@ -166,15 +172,48 @@ io.on('connection', (socket) => {
         }
       })
 
+      // Send message receipt to sender
+      socket.emit('message-receipt', { messageId: Date.now(), status: 'delivered' })
+
       // Broadcast AI response to everyone in the room (including sender)
       io.to(conversationId).emit('ai-response', {
         message: response.content,
         suggestions: response.suggestions,
-        grammarCorrections: response.grammarCorrections
+        grammarCorrections: response.grammarCorrections,
+        timestamp: new Date().toISOString()
       })
     } catch (error) {
       logger.error('WebSocket send-message error', { error })
       socket.emit('error', { message: 'Failed to process message' })
+      
+      // Also send error to room so other participants know
+      const { conversationId } = data || {}
+      if (conversationId) {
+        socket.to(conversationId).emit('error', { message: 'AI response failed' })
+      }
+    }
+  })
+
+  // Handle typing indicators
+  socket.on('start-typing', (data) => {
+    const { conversationId } = data || {}
+    if (conversationId) {
+      socket.to(conversationId).emit('typing', { isTyping: true, senderId: socket.id, sender: 'user' })
+    }
+  })
+
+  socket.on('stop-typing', (data) => {
+    const { conversationId } = data || {}
+    if (conversationId) {
+      socket.to(conversationId).emit('typing', { isTyping: false, senderId: socket.id, sender: 'user' })
+    }
+  })
+
+  // Handle message read receipts
+  socket.on('message-read', (data) => {
+    const { conversationId, messageId } = data || {}
+    if (conversationId && messageId) {
+      io.to(conversationId).emit('message-read', { messageId, readerId: socket.id })
     }
   })
 
