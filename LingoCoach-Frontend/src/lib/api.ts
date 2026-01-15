@@ -72,6 +72,7 @@ export const conversationAPI = {
   }) => api.post('/api/conversations', data),
   getConversations: () => api.get('/api/conversations'),
   getConversation: (id: string) => api.get(`/api/conversations/${id}`),
+  speak: (data: { text: string, language?: string }) => api.post('/api/conversations/speak', data),
 }
 
 export const lessonAPI = {
