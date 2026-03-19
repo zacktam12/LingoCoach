@@ -1,7 +1,7 @@
 'use client'
 
 import { useDashboardData } from '@/hooks/useDashboardData'
-import { BookOpen, MessageCircle, Mic, Trophy, Target, Calendar, TrendingUp, Sparkles, Send, Bot, User, ArrowRight, LayoutDashboard, Settings } from 'lucide-react'
+import { BookOpen, MessageCircle, Mic, Trophy, Calendar, Sparkles, Send, Bot, ArrowRight, LayoutDashboard, Settings } from 'lucide-react'
 import Link from 'next/link'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { Spinner } from '@/components/ui/spinner'
@@ -14,11 +14,11 @@ export default function Dashboard() {
   const [inputValue, setInputValue] = useState('')
 
   useEffect(() => {
-    if (data) {
+    if (data && messages.length === 0) {
       const stats = data.stats || {}
       const recommendations = data.recommendations || {}
 
-      const welcomeMessages = [
+      const welcomeMessages: any[] = [
         {
           id: 'welcome-1',
           role: 'assistant',
@@ -39,7 +39,7 @@ export default function Dashboard() {
         }
       ]
 
-      if (recommendations.recommendedLesson || recommendations.recommendedConversation) {
+      if (recommendations && (recommendations.recommendedLesson || recommendations.recommendedConversation)) {
         welcomeMessages.push({
           id: 'recommendations',
           role: 'assistant',
@@ -47,13 +47,13 @@ export default function Dashboard() {
           type: 'actions',
           actions: [
             recommendations.recommendedLesson && {
-              label: `Next Lesson: ${recommendations.recommendedLesson.title}`,
+              label: `Next Lesson: ${recommendations.recommendedLesson.title || 'Untitled'}`,
               href: `/lessons/${recommendations.recommendedLesson.id}`,
               icon: <BookOpen className="h-4 w-4" />,
               primary: true
             },
             recommendations.recommendedConversation && {
-              label: `Chat in ${recommendations.recommendedConversation.language.toUpperCase()}`,
+              label: `Chat in ${(recommendations.recommendedConversation.language || 'English').toUpperCase()}`,
               href: `/conversations/new`,
               icon: <MessageCircle className="h-4 w-4" />,
               primary: false
@@ -64,7 +64,7 @@ export default function Dashboard() {
 
       setMessages(welcomeMessages)
     }
-  }, [data])
+  }, [data, messages.length])
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -141,11 +141,14 @@ export default function Dashboard() {
             animate="visible"
             variants={containerVariants}
           >
-            <AnimatePresence>
-              {messages.map((msg, idx) => (
+            <AnimatePresence mode="popLayout">
+              {messages.map((msg) => (
                 <motion.div 
                   key={msg.id} 
                   variants={messageVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="hidden"
                   layout
                   className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} items-end gap-3`}
                 >
@@ -294,59 +297,6 @@ export default function Dashboard() {
             >
               <Send className="h-5 w-5" />
             </button>
-          </div>
-        </div>
-      </div>
-    </ProtectedRoute>
-  )
-}
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="text-sm font-medium mb-2">By language</div>
-                      <div className="space-y-2 text-xs text-muted-foreground">
-                        {analytics.languageStats.length > 0 ? (
-                          analytics.languageStats.map((item: any) => {
-                            const widthPercent = maxLanguageTime
-                              ? Math.round(((item.totalTime || 0) / maxLanguageTime) * 100)
-                              : 0
-                            return (
-                              <div key={item.language} className="space-y-1">
-                                <div className="flex justify-between">
-                                  <span>{item.language}</span>
-                                  <span>
-                                    {Math.round(item.totalTime || 0)} min  • {Math.round(item.averageScore || 0)}/100
-                                  </span>
-                                </div>
-                                <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                                  <div
-                                    className="h-2 bg-primary rounded-full"
-                                    style={{ width: `${Math.min(100, Math.max(0, widthPercent))}%` }}
-                                  ></div>
-                                </div>
-                              </div>
-                            )
-                          })
-                        ) : (
-                          <div>No language stats yet.</div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="text-xs text-muted-foreground border-t border-border pt-3 mt-2">
-                      <div className="flex justify-between">
-                        <span>Pronunciation (7 days)</span>
-                        <span>
-                          {analytics.pronunciationSummary.count} sessions  •{' '}
-                          {Math.round(analytics.pronunciationSummary.averageScore || 0)}/100
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </div>
