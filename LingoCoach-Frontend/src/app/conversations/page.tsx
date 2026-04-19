@@ -1,144 +1,149 @@
 'use client'
 
-import { useConversationsQuery } from '@/hooks/useConversations'
-import { MessageCircle, Plus, Clock, Globe } from 'lucide-react'
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { conversationAPI } from '@/lib/api'
 import Link from 'next/link'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import { Spinner } from '@/components/ui/spinner'
-import { TipCard } from '@/components/ui/TipCard'
-import { motion, useReducedMotion } from 'framer-motion'
+import { MessageCircle, Plus, Trash2, ChevronRight, Globe, BarChart2 } from 'lucide-react'
+import { motion } from 'framer-motion'
+
+const LANG_LABELS: Record<string, string> = {
+  en: 'English', es: 'Spanish', fr: 'French', de: 'German',
+  it: 'Italian', pt: 'Portuguese', ja: 'Japanese', zh: 'Chinese',
+}
 
 export default function Conversations() {
-  const { data, isLoading, error } = useConversationsQuery()
+  const [page, setPage] = useState(1)
+  const queryClient = useQueryClient()
 
-  const conversations = data || []
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['conversations', page],
+    queryFn: () => conversationAPI.getConversations({ page, limit: 20 }).then((r) => r.data),
+  })
 
-  const shouldReduceMotion = useReducedMotion()
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => conversationAPI.deleteConversation(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['conversations'] }),
+  })
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.06,
-        delayChildren: 0.04,
-      },
-    },
-  }
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 8 },
-    visible: { opacity: 1, y: 0 },
-  }
-
-  const motionListProps = shouldReduceMotion
-    ? {}
-    : { initial: 'hidden' as const, animate: 'visible' as const }
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-96">
-        <Spinner className="h-12 w-12 text-blue-600" />
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="p-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 rounded-md">
-        {error.message}
-        {error}
-      </div>
-    )
-  }
+  const conversations = data?.conversations || []
+  const pagination = data?.pagination
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold text-foreground">Conversations</h1>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Conversations</h1>
+              <p className="text-gray-500 dark:text-gray-400 mt-1">Your AI practice sessions</p>
+            </div>
             <Link href="/conversations/new">
-              <button className="flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90">
-                <Plus className="h-4 w-4 mr-2" />
-                New Conversation
+              <button className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-semibold shadow-lg shadow-blue-600/20 transition-all active:scale-[0.98]">
+                <Plus className="h-5 w-5" />
+                New Chat
               </button>
             </Link>
           </div>
 
-          <div className="bg-card rounded-xl shadow-lg p-6 mb-8">
-            <h2 className="text-xl font-semibold text-foreground mb-4">Recent Conversations</h2>
+          {isLoading && (
+            <div className="flex justify-center py-20">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+            </div>
+          )}
 
-            {conversations.length > 0 ? (
+          {error && (
+            <div className="p-4 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-xl border border-red-200 dark:border-red-800">
+              Failed to load conversations.
+            </div>
+          )}
+
+          {!isLoading && conversations.length === 0 && (
+            <div className="text-center py-20">
+              <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <MessageCircle className="h-8 w-8 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No conversations yet</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-6">Start practicing with your AI language tutor</p>
+              <Link href="/conversations/new">
+                <button className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-semibold transition-all">
+                  Start your first conversation
+                </button>
+              </Link>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {conversations.map((conv: any, i: number) => (
               <motion.div
-                className="space-y-4"
-                variants={containerVariants}
-                {...motionListProps}
+                key={conv.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04 }}
+                className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all group"
               >
-                {conversations.map((conversation) => (
-                  <motion.div key={conversation.id} variants={itemVariants}>
-                    <Link href={`/conversations/${conversation.id}`}>
-                      <div className="flex items-center p-4 border border-border rounded-lg hover:bg-accent transition-colors cursor-pointer">
-                        <div className="p-2 bg-primary/10 rounded-lg mr-4">
-                          <MessageCircle className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium text-foreground">
-                            {conversation.title || `Conversation in ${conversation.language}`}
-                          </h3>
-                          <div className="flex items-center text-sm text-muted-foreground mt-1">
-                            <Globe className="h-4 w-4 mr-1" />
-                            <span className="capitalize mr-3">{conversation.language}</span>
-                            <span className="capitalize">{conversation.level}</span>
-                          </div>
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {new Date(conversation.updatedAt).toLocaleDateString()}
-                        </div>
-                      </div>
+                <div className="flex items-center p-4 gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+                    <MessageCircle className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+                      {conv.title || `${LANG_LABELS[conv.language] || conv.language} Practice`}
+                    </h3>
+                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      <span className="flex items-center gap-1">
+                        <Globe className="h-3 w-3" />
+                        {LANG_LABELS[conv.language] || conv.language}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <BarChart2 className="h-3 w-3" />
+                        <span className="capitalize">{conv.level}</span>
+                      </span>
+                      <span>{new Date(conv.updatedAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={(e) => { e.preventDefault(); if (confirm('Delete this conversation?')) deleteMutation.mutate(conv.id) }}
+                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                      aria-label="Delete conversation"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                    <Link href={`/conversations/${conv.id}`}>
+                      <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
+                        <ChevronRight className="h-5 w-5" />
+                      </button>
                     </Link>
-                  </motion.div>
-                ))}
+                  </div>
+                </div>
               </motion.div>
-            ) : (
-              <motion.div
-                className="text-center py-8"
-                variants={itemVariants}
-                {...motionListProps}
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {pagination && pagination.pages > 1 && (
+            <div className="flex justify-center gap-2 mt-8">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
-                <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">No conversations yet</h3>
-                <p className="text-muted-foreground mb-4">
-                  Start a new conversation to practice your language skills.
-                </p>
-                <Link href="/conversations/new">
-                  <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90">
-                    Start Conversation
-                  </button>
-                </Link>
-              </motion.div>
-            )}
-          </div>
-
-          <div className="bg-card rounded-xl shadow-lg p-6">
-            <h2 className="text-xl font-semibold text-foreground mb-4">Conversation Tips</h2>
-
-            <motion.div
-              className="grid grid-cols-1 md:grid-cols-3 gap-4"
-              variants={containerVariants}
-              {...motionListProps}
-            >
-              <motion.div variants={itemVariants}>
-                <TipCard title="Be Consistent" description="Practice daily to build confidence and fluency in your target language." />
-              </motion.div>
-              <motion.div variants={itemVariants}>
-                <TipCard title="Don't Fear Mistakes" description="Mistakes are part of learning. Our AI will help you correct them naturally." />
-              </motion.div>
-              <motion.div variants={itemVariants}>
-                <TipCard title="Ask Questions" description="Be curious! Ask about culture, idioms, and real-life usage of the language." />
-              </motion.div>
-            </motion.div>
-          </div>
+                Previous
+              </button>
+              <span className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                Page {page} of {pagination.pages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
+                disabled={page === pagination.pages}
+                className="px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </ProtectedRoute>
