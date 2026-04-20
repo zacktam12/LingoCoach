@@ -2,10 +2,6 @@ import { Router, Request, Response } from 'express'
 import { authenticateToken } from '../middleware/auth'
 import { DeepSeekService } from '../services/ai'
 import { prisma } from '../lib/database'
-import multer from 'multer'
-import { v4 as uuidv4 } from 'uuid'
-import path from 'path'
-import fs from 'fs'
 
 interface AuthRequest extends Request {
   user?: {
@@ -17,52 +13,23 @@ interface AuthRequest extends Request {
 const router = Router()
 const deepseek = new DeepSeekService(process.env.DEEPSEEK_API_KEY!)
 
-// Ensure uploads directory exists
-const uploadDir = path.join(__dirname, '../../uploads')
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true })
-}
-
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: uploadDir,
-  filename: function (req, file, cb) {
-    cb(null, uuidv4() + '-' + file.originalname)
-  }
-})
-
-const upload = multer({ 
-  storage: storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('audio/')) {
-      cb(null, true)
-    } else {
-      cb(new Error('Only audio files are allowed') as any)
-    }
-  }
-})
-
 // Health check endpoint
 router.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'Pronunciation service is running', timestamp: new Date().toISOString() })
 })
 
 // Analyze pronunciation
-router.post('/analyze', authenticateToken, upload.single('audio'), async (req: AuthRequest, res: Response) => {
+router.post('/analyze', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const { text, language } = req.body
+    const { expectedText, transcription, language } = req.body
     const userId = req.user!.id
-    const audioFile = req.file
 
-    if (!audioFile) {
-      return res.status(400).json({ error: 'Audio file is required' })
+    if (!expectedText) {
+      return res.status(400).json({ error: 'expectedText is required' })
     }
 
-    if (!text) {
-      return res.status(400).json({ error: 'Text is required' })
+    if (!transcription) {
+      return res.status(400).json({ error: 'transcription is required' })
     }
 
     // Validate language parameter
@@ -71,22 +38,17 @@ router.post('/analyze', authenticateToken, upload.single('audio'), async (req: A
       return res.status(400).json({ error: 'Unsupported language' })
     }
 
-    // In a real implementation, we would:
-    // 1. Use a speech-to-text service to transcribe the audio
-    // 2. Compare the transcription with the provided text
-    // 3. Use AI to analyze pronunciation accuracy
+    // Use AI backend to score the raw text comparison
+    const analysisResult = await deepseek.analyzePronunciation(transcription, expectedText, language || 'en')
     
-    // For now, we'll simulate the analysis
-    const analysisResult = await deepseek.analyzePronunciation(text, language || 'en')
-    
-    // Save analysis to database
+    // Save analysis to database without audioUrl (since it's done natively in frontend)
     const pronunciationAnalysis = await prisma.pronunciationAnalysis.create({
       data: {
         userId,
-        audioUrl: `/uploads/${path.basename(audioFile.path)}`,
-        text,
+        text: expectedText,
         score: analysisResult.score,
-        feedback: analysisResult.feedback
+        feedback: analysisResult.feedback,
+        audioUrl: '' // Satisfy Prisma schema without storing an actual WebM blob
       }
     })
 
@@ -101,6 +63,27 @@ router.post('/analyze', authenticateToken, upload.single('audio'), async (req: A
     res.status(500).json({ error: 'Failed to analyze pronunciation', details: error.message })
   }
 })
+
+// Generate practice phrase dynamically
+router.get('/generate', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const { language } = req.query;
+    
+    // Validate language parameter
+    const supportedLanguages = ['en', 'es', 'fr', 'de', 'it', 'pt'];
+    const langstr = typeof language === 'string' ? language : 'en';
+    
+    if (language && !supportedLanguages.includes(langstr)) {
+      return res.status(400).json({ error: 'Unsupported language' });
+    }
+
+    const phrase = await deepseek.generatePracticePhrase(langstr);
+    res.json({ phrase });
+  } catch (error) {
+    console.error('Generate phrase error:', error);
+    res.status(500).json({ error: 'Failed to generate practice phrase' });
+  }
+});
 
 // Get user's pronunciation history
 router.get('/history', authenticateToken, async (req: AuthRequest, res: Response) => {
