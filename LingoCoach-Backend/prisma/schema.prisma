@@ -47,6 +47,8 @@ model LearningProgress {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([userId, completedAt])
   @@map("learning_progress")
 }
 
@@ -65,6 +67,7 @@ model Lesson {
 
   userLessons UserLesson[]
 
+  @@index([language, level, isActive])
   @@map("lessons")
 }
 
@@ -98,12 +101,14 @@ model Conversation {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([userId, updatedAt])
   @@map("conversations")
 }
 
 model Achievement {
   id          String   @id @default(cuid())
-  name        String
+  name        String   @unique
   description String
   icon        String?
   category    String
@@ -167,6 +172,8 @@ model PronunciationAnalysis {
   feedback    Json
   createdAt   DateTime @default(now())
 
+  @@index([userId])
+  @@index([userId, createdAt])
   @@map("pronunciation_analysis")
 }
 
