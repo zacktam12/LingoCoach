@@ -1,42 +1,49 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { authAPI } from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
+import { authAPI } from '@/lib/api'
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const [isLoading, setIsLoading] = useState(true)
+  const [checking, setChecking] = useState(true)
   const router = useRouter()
-  const { isAuthenticated, setIsAuthenticated, logout } = useAuthStore()
+  const { isAuthenticated, setAuth, setUser, logout, user, token, refreshToken } = useAuthStore()
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const token = localStorage.getItem('auth-token')
-      if (!token) {
+    const verify = async () => {
+      const storedToken = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null
+
+      if (!storedToken) {
         logout()
         return
       }
 
+      // If we already have user data in store, skip the API call
+      if (isAuthenticated && user) {
+        setChecking(false)
+        return
+      }
+
       try {
-        // Verify token is still valid
-        await authAPI.me()
-        setIsAuthenticated(true)
-      } catch (error) {
-        // Token is invalid, use shared logout logic
+        const res = await authAPI.me()
+        setUser(res.data.user)
+        setChecking(false)
+      } catch {
         logout()
-      } finally {
-        setIsLoading(false)
       }
     }
 
-    checkAuth()
-  }, [router])
+    verify()
+  }, [])
 
-  if (isLoading) {
+  if (checking) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+          <p className="text-sm text-gray-500 dark:text-gray-400">Loading...</p>
+        </div>
       </div>
     )
   }

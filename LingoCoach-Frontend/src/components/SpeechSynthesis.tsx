@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { Volume2, VolumeX, Play, Square } from 'lucide-react';
-import { conversationAPI } from '@/lib/api';
+import { useState } from 'react';
+import { Volume2, Square } from 'lucide-react';
 
 interface SpeechSynthesisProps {
   text: string;
@@ -13,60 +12,55 @@ export default function SpeechSynthesis({ text, language = 'en-US' }: SpeechSynt
   const [isLoading, setIsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const handleSpeak = async () => {
     if (!text.trim()) return;
+    
+    if (!('speechSynthesis' in window)) {
+      setError('Text-to-speech is not supported in this browser.');
+      return;
+    }
 
     try {
       setIsLoading(true);
       setError(null);
       
-      // Get audio from backend API
-      const response = await conversationAPI.speak({ text, language });
+      // Cancel any ongoing speech
+      window.speechSynthesis.cancel();
       
-      // Create a blob from the audio data
-      const audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
-      const audioUrl = URL.createObjectURL(audioBlob);
+      const utterance = new SpeechSynthesisUtterance(text);
       
-      // If we have an existing audio element, clean it up
-      if (audioRef.current) {
-        audioRef.current.pause();
-        URL.revokeObjectURL(audioRef.current.src);
-      }
+      // Map language codes to supported voices if needed
+      utterance.lang = language;
       
-      // Create new audio element
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
+      utterance.onstart = () => {
+        setIsPlaying(true);
+        setIsLoading(false);
+      };
       
-      audio.onended = () => {
+      utterance.onend = () => {
         setIsPlaying(false);
-        if (audioRef.current) {
-          URL.revokeObjectURL(audioRef.current.src);
-          audioRef.current = null;
+      };
+      
+      utterance.onerror = (e) => {
+        if (e.error !== 'canceled' && e.error !== 'interrupted') {
+          setError('Failed to play audio. Your browser may be blocking it.');
         }
-      };
-      
-      audio.onerror = () => {
-        setError('Failed to play audio');
         setIsPlaying(false);
+        setIsLoading(false);
       };
       
-      await audio.play();
-      setIsPlaying(true);
+      window.speechSynthesis.speak(utterance);
     } catch (err) {
       console.error('Speech synthesis error:', err);
       setError('Failed to generate speech. Please try again.');
-    } finally {
       setIsLoading(false);
     }
   };
 
   const handleStop = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      URL.revokeObjectURL(audioRef.current.src);
-      audioRef.current = null;
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
     }
     setIsPlaying(false);
   };
