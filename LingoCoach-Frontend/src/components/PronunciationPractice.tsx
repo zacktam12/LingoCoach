@@ -1,12 +1,21 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Mic, MicOff, Play, Square, RotateCcw, Volume2, VolumeX, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
+import { Mic, Square, RotateCcw, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
 import { pronunciationAPI, userAPI } from '@/lib/api'
+
+// Add types for Web Speech API
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
+// Dynamic suggestions are fetched from the backend API
 
 export default function PronunciationPractice() {
   const [isRecording, setIsRecording] = useState(false)
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
+  const [transcriptResult, setTranscriptResult] = useState<string>('')
   const [text, setText] = useState('')
   const [language, setLanguage] = useState('en')
   const [score, setScore] = useState<number | null>(null)
@@ -14,9 +23,9 @@ export default function PronunciationPractice() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [history, setHistory] = useState<any[]>([])
+  const [isGenerating, setIsGenerating] = useState(false)
   
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const audioChunksRef = useRef<Blob[]>([])
+  const recognitionRef = useRef<any>(null)
 
   const isAiDegraded =
     score === 0 &&
@@ -50,48 +59,96 @@ export default function PronunciationPractice() {
     }
   }
 
-  const startRecording = async () => {
+  const generateSuggestion = async (targetLang: string) => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      mediaRecorderRef.current = new MediaRecorder(stream)
-      audioChunksRef.current = []
-
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data)
-      }
-
-      mediaRecorderRef.current.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-        setAudioBlob(audioBlob)
-        
-        // Create a preview URL for playback
-        const audioUrl = URL.createObjectURL(audioBlob)
-        const audio = new Audio(audioUrl)
-        // You can use this audio object for playback if needed
-      }
-
-      mediaRecorderRef.current.start()
-      setIsRecording(true)
+      setIsGenerating(true)
       setError(null)
+      const res = await pronunciationAPI.generatePhrase(targetLang)
+      if (res.data && res.data.phrase) {
+        setText(res.data.phrase)
+      }
     } catch (err) {
-      setError('Failed to access microphone. Please check permissions.')
-      console.error('Microphone access error:', err)
+      console.error('Failed to generate phrase:', err)
+      setError('Failed to generate a phrase block. Please try typing one.')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  const startRecording = async () => {
+    if (!text) {
+      setError('Please enter a text to practice first.')
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setError('Speech recognition is not supported in this browser. Please use Chrome or Edge.');
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = language === 'en' ? 'en-US' : language;
+      recognition.continuous = false;
+      recognition.interimResults = true;
+
+      recognition.onstart = () => {
+        setIsRecording(true);
+        setError(null);
+        setTranscriptResult('');
+        setScore(null);
+        setFeedback(null);
+      };
+
+      recognition.onresult = (event: any) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+        
+        setTranscriptResult(finalTranscript || interimTranscript);
+        
+        if (finalTranscript) {
+          analyzePronunciation(finalTranscript);
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        if (event.error !== 'aborted') {
+          setError(`Microphone error: ${event.error}`);
+        }
+        setIsRecording(false);
+      };
+
+      recognition.onend = () => {
+        setIsRecording(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      setError('Failed to start microphone. Please check permissions.');
+      console.error(err);
     }
   }
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop()
+    if (recognitionRef.current && isRecording) {
+      recognitionRef.current.stop()
       setIsRecording(false)
-      
-      // Stop all tracks
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop())
     }
   }
 
-  const analyzePronunciation = async () => {
-    if (!audioBlob || !text) {
-      setError('Please record audio and enter text to analyze')
+  const analyzePronunciation = async (transcriptionStr: string) => {
+    if (!transcriptionStr || !text) {
+      setError('Could not hear anything clearly. Please try again.')
       return
     }
 
@@ -99,17 +156,14 @@ export default function PronunciationPractice() {
       setIsAnalyzing(true)
       setError(null)
       
-      const formData = new FormData()
-      formData.append('audio', audioBlob, 'recording.webm')
-      formData.append('text', text)
-      formData.append('language', language)
-
-      const response = await pronunciationAPI.analyze(formData)
+      const response = await pronunciationAPI.analyze({
+        expectedText: text,
+        transcription: transcriptionStr,
+        language
+      });
 
       setScore(response.data.score)
       setFeedback(response.data.feedback)
-
-      // Refresh history so recent analysis appears
       loadHistory()
     } catch (err) {
       setError('Failed to analyze pronunciation. Please try again.')
@@ -121,47 +175,29 @@ export default function PronunciationPractice() {
 
   const resetPractice = () => {
     setIsRecording(false)
-    setAudioBlob(null)
+    setTranscriptResult('')
     setText('')
     setScore(null)
     setFeedback(null)
     setError(null)
     
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop())
+    if (recognitionRef.current && isRecording) {
+      recognitionRef.current.stop()
     }
   }
 
-  // State for audio playback
-  const [isPlaying, setIsPlaying] = useState(false)
-  const audioRef = useRef<HTMLAudioElement>(null)
-  
-  const handlePlayAudio = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause()
-      } else {
-        audioRef.current.play()
-      }
-      setIsPlaying(!isPlaying)
-    }
-  }
-  
-  // Function to get score color based on score
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600 dark:text-green-400'
     if (score >= 60) return 'text-yellow-600 dark:text-yellow-400'
     return 'text-red-600 dark:text-red-400'
   }
   
-  // Function to get score icon based on score
   const getScoreIcon = (score: number) => {
     if (score >= 80) return <CheckCircle className="inline mr-2 text-green-600" size={20} />
     if (score >= 60) return <AlertTriangle className="inline mr-2 text-yellow-600" size={20} />
     return <XCircle className="inline mr-2 text-red-600" size={20} />
   }
   
-  // Function to get score message based on score
   const getScoreMessage = (score: number) => {
     if (score >= 90) return 'Excellent!'
     if (score >= 80) return 'Great job!'
@@ -180,7 +216,7 @@ export default function PronunciationPractice() {
       {isAiDegraded && (
         <div className="mb-4 p-3 text-xs rounded-md bg-amber-50 text-amber-800 border border-amber-200 flex items-center">
           <AlertTriangle className="mr-2" size={16} />
-          Pronunciation AI is temporarily unavailable. You can still record and listen to yourself while it recovers.
+          Pronunciation AI is temporarily unavailable.
         </div>
       )}
       
@@ -193,7 +229,13 @@ export default function PronunciationPractice() {
           </label>
           <select
             value={language}
-            onChange={(e) => setLanguage(e.target.value)}
+            onChange={(e) => {
+              const newLang = e.target.value;
+              setLanguage(newLang);
+              if (!text) {
+                generateSuggestion(newLang);
+              }
+            }}
             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-600 dark:text-white"
           >
             <option value="en">English</option>
@@ -218,9 +260,20 @@ export default function PronunciationPractice() {
             rows={4}
             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-600 dark:text-white resize-none"
           />
-          <div className="mt-2 text-sm text-gray-500 dark:text-gray-400 flex justify-between">
+          <div className="mt-3 text-sm text-gray-500 dark:text-gray-400 flex justify-between items-center">
             <span>{text.length}/500 characters</span>
-            <span>Press Enter for new line</span>
+            <button 
+              onClick={() => generateSuggestion(language)}
+              disabled={isGenerating}
+              className="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 font-semibold flex items-center transition-colors shadow-sm disabled:opacity-50"
+            >
+              {isGenerating ? (
+                 <span className="mr-1 animate-spin text-sm">⏳</span>
+              ) : (
+                 <span className="mr-1">✨</span>
+              )}
+              {isGenerating ? 'Generating...' : 'Suggest Phrase'}
+            </button>
           </div>
         </div>
         
@@ -230,11 +283,11 @@ export default function PronunciationPractice() {
             {!isRecording ? (
               <button
                 onClick={startRecording}
-                disabled={isAnalyzing}
+                disabled={isAnalyzing || !text.trim()}
                 className="flex items-center px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-all duration-200 shadow-md"
               >
                 <Mic className="mr-2" size={20} />
-                Start Recording
+                Start Speaking
               </button>
             ) : (
               <button
@@ -242,7 +295,7 @@ export default function PronunciationPractice() {
                 className="flex items-center px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all duration-200 shadow-md"
               >
                 <Square className="mr-2" size={20} />
-                Stop Recording
+                Stop
               </button>
             )}
             
@@ -259,51 +312,17 @@ export default function PronunciationPractice() {
           {isRecording && (
             <div className="flex items-center text-red-600 dark:text-red-400 animate-pulse">
               <div className="w-4 h-4 bg-red-600 rounded-full animate-pulse mr-2"></div>
-              <span className="font-medium">Recording... Speak clearly!</span>
+              <span className="font-medium">Listening... Speak clearly!</span>
             </div>
           )}
-          
-          {audioBlob && (
-            <div className="flex flex-col items-center space-y-3 w-full max-w-md">
-              <div className="flex items-center justify-between w-full bg-gray-100 dark:bg-gray-600 p-3 rounded-lg">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-                  {audioBlob.type || 'audio/webm'}
-                </span>
-                <button 
-                  onClick={handlePlayAudio}
-                  className="p-2 rounded-full bg-blue-100 dark:bg-blue-900 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
-                >
-                  {isPlaying ? <VolumeX size={20} /> : <Volume2 size={20} />}
-                </button>
-              </div>
-              <audio ref={audioRef} src={URL.createObjectURL(audioBlob)} onEnded={() => setIsPlaying(false)} />
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                Click the volume icon to play your recording
-              </div>
+
+          {transcriptResult && (
+            <div className="w-full bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
+               <span className="text-sm text-gray-500 uppercase tracking-wider font-semibold block mb-2">You said:</span>
+               <p className="text-gray-800 dark:text-white italic">"{transcriptResult}"</p>
             </div>
           )}
         </div>
-        
-        {/* Analyze Button */}
-        {audioBlob && text && (
-          <button
-            onClick={analyzePronunciation}
-            disabled={isAnalyzing}
-            className="w-full flex items-center justify-center px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-lg hover:from-blue-700 hover:to-indigo-800 disabled:opacity-50 transition-all duration-200 shadow-lg"
-          >
-            {isAnalyzing ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                Analyzing Pronunciation...
-              </>
-            ) : (
-              <>
-                <Mic className="mr-2" size={20} />
-                Analyze Pronunciation
-              </>
-            )}
-          </button>
-        )}
         
         {/* Results */}
         {score !== null && (
@@ -350,6 +369,14 @@ export default function PronunciationPractice() {
                         {index + 1}.
                       </div>
                       <span className="text-gray-700 dark:text-gray-300">{suggestion}</span>
+                    </li>
+                  ))}
+                  {feedback.errors && feedback.errors.map((errStr: string, index: number) => (
+                    <li key={'err'+index} className="flex items-start p-3 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-200 dark:border-red-900/50">
+                      <div className="mr-2 mt-0.5 text-red-600">
+                        {index + 1}.
+                      </div>
+                      <span className="text-red-700 dark:text-red-300">{errStr}</span>
                     </li>
                   ))}
                 </ul>
