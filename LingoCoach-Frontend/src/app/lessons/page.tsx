@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useLessonsQuery } from '@/hooks/useLessons'
 import { useUserPreferences } from '@/hooks/useUserPreferences'
-
-import { BookOpen, Clock, Star, Play } from 'lucide-react'
+import { BookOpen, Clock, Star, Play, Plus } from 'lucide-react'
 import Link from 'next/link'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { motion, useReducedMotion } from 'framer-motion'
+import { LessonCardSkeleton } from '@/components/ui/skeleton'
 
 export default function Lessons() {
   const [lessons, setLessons] = useState<any[]>([])
@@ -61,16 +61,23 @@ export default function Lessons() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
+      <ProtectedRoute>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+          <div className="container mx-auto px-4 py-8">
+            <div className="h-9 w-32 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse mb-8" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 6 }).map((_, i) => <LessonCardSkeleton key={i} />)}
+            </div>
+          </div>
+        </div>
+      </ProtectedRoute>
     )
   }
 
   if (error) {
     return (
       <div className="p-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 rounded-md">
-        {error}
+        Failed to load lessons. Please try again.
       </div>
     )
   }
@@ -79,7 +86,15 @@ export default function Lessons() {
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="container mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Lessons</h1>
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Lessons</h1>
+            <Link href="/lessons/new">
+              <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95 font-semibold">
+                <Plus className="h-5 w-5" />
+                <span>New Lesson</span>
+              </button>
+            </Link>
+          </div>
           
           {/* Filters */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-8">
