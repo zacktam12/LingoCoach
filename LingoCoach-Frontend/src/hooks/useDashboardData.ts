@@ -7,20 +7,30 @@ export function useDashboardData() {
   return useQuery({
     queryKey: ["dashboard", "all"],
     queryFn: async () => {
-      const [statsResponse, progressResponse, analyticsResponse, recommendationsResponse] =
-        await Promise.all([
-          dashboardAPI.getStats(),
-          dashboardAPI.getProgress(),
-          dashboardAPI.getAnalytics(),
-          dashboardAPI.getRecommendations(),
-        ])
+      const [statsRes, progressRes, recommendationsRes] = await Promise.allSettled([
+        dashboardAPI.getStats(),
+        dashboardAPI.getProgress(),
+        dashboardAPI.getRecommendations(),
+      ])
 
       return {
-        stats: statsResponse.data,
-        progress: progressResponse.data.progress || [],
-        analytics: analyticsResponse.data,
-        recommendations: recommendationsResponse.data,
+        stats: statsRes.status === 'fulfilled' ? statsRes.value.data : {},
+        progress: progressRes.status === 'fulfilled' ? (progressRes.value.data.progress || []) : [],
+        recommendations: recommendationsRes.status === 'fulfilled' ? recommendationsRes.value.data : {},
       }
     },
+    staleTime: 2 * 60 * 1000,
+    retry: 2,
+  })
+}
+
+export function useDashboardAnalytics() {
+  return useQuery({
+    queryKey: ["dashboard", "analytics"],
+    queryFn: async () => {
+      const res = await dashboardAPI.getAnalytics()
+      return res.data
+    },
+    staleTime: 5 * 60 * 1000,
   })
 }

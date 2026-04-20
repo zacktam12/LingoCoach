@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { userAPI } from "@/lib/api"
 import { usePreferencesStore } from "@/stores/preferencesStore"
+import { useAuthStore } from "@/stores/authStore"
 
 interface UserPreferences {
   targetLanguage?: string | null
@@ -12,9 +13,11 @@ interface UserPreferences {
 
 export function useUserPreferences() {
   const setPreferences = usePreferencesStore((state) => state.setPreferences)
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
 
   return useQuery<UserPreferences | null>({
     queryKey: ["user", "preferences"],
+    enabled: isAuthenticated,
     queryFn: async () => {
       const response = await userAPI.getPreferences()
       const prefs: UserPreferences | null = response.data.preferences || null

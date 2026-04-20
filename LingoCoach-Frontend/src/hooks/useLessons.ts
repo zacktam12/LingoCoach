@@ -7,20 +7,18 @@ export interface LessonsFilter {
   language?: string
   level?: string
   category?: string
+  page?: number
+  limit?: number
 }
 
 export function useLessonsQuery(filter: LessonsFilter) {
   return useQuery({
     queryKey: ["lessons", filter],
     queryFn: async () => {
-      const params: any = {}
-      if (filter.language) params.language = filter.language
-      if (filter.level) params.level = filter.level
-      if (filter.category) params.category = filter.category
-
-      const response = await lessonAPI.getLessons(params)
+      const response = await lessonAPI.getLessons(filter)
       return response.data.lessons || []
     },
+    staleTime: 5 * 60 * 1000, // 5 min cache
   })
 }
 
@@ -31,5 +29,7 @@ export function useLessonDetailQuery(id: string) {
       const response = await lessonAPI.getLesson(id)
       return response.data.lesson
     },
+    enabled: !!id,
+    staleTime: 10 * 60 * 1000,
   })
 }
