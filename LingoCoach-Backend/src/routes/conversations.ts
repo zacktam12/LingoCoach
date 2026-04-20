@@ -43,13 +43,18 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response) => {
     let conversation
 
     if (conversationId) {
-      // Append to existing conversation
+      // Append to existing conversation - fetch first, then update (JSON field doesn't support push)
+      const existing = await prisma.conversation.findFirst({
+        where: { id: conversationId, userId }
+      })
+      if (!existing) {
+        return res.status(404).json({ error: 'Conversation not found' })
+      }
+      const existingMessages = Array.isArray(existing.messages) ? existing.messages : []
       conversation = await prisma.conversation.update({
         where: { id: conversationId },
         data: {
-          messages: {
-            push: newMessages
-          },
+          messages: [...existingMessages, ...newMessages],
           updatedAt: new Date()
         }
       })
@@ -78,23 +83,35 @@ router.post('/', authenticateToken, async (req: AuthRequest, res: Response) => {
   }
 })
 
-// Get user conversations
+// Get user conversations with pagination
 router.get('/', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const conversations = await prisma.conversation.findMany({
-      where: { userId: req.user!.id },
-      orderBy: { updatedAt: 'desc' },
-      select: {
-        id: true,
-        title: true,
-        language: true,
-        level: true,
-        createdAt: true,
-        updatedAt: true
-      }
-    })
+    const page = Math.max(1, parseInt(req.query.page as string) || 1)
+    const limit = Math.min(50, parseInt(req.query.limit as string) || 20)
+    const skip = (page - 1) * limit
 
-    res.json({ conversations })
+    const [conversations, total] = await Promise.all([
+      prisma.conversation.findMany({
+        where: { userId: req.user!.id },
+        orderBy: { updatedAt: 'desc' },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          title: true,
+          language: true,
+          level: true,
+          createdAt: true,
+          updatedAt: true
+        }
+      }),
+      prisma.conversation.count({ where: { userId: req.user!.id } })
+    ])
+
+    res.json({
+      conversations,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) }
+    })
   } catch (error) {
     console.error('Get conversations error:', error)
     res.status(500).json({ error: 'Failed to fetch conversations' })
@@ -139,44 +156,6 @@ router.delete('/:id', authenticateToken, async (req: AuthRequest, res: Response)
   }
 })
 
-// Text-to-speech for AI responses
-router.post('/speak', authenticateToken, async (req: AuthRequest, res: Response) => {
-  try {
-    const { text, language = 'en-US' } = req.body;
-    const userId = req.user!.id;
-    
-    if (!text) {
-      return res.status(400).json({ error: 'Text is required' });
-    }
-    
-    // Validate user exists
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
-    });
-    
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    
-    // Convert language to proper format if needed
-    const languageCode = deepseek.convertLanguageToISO(language);
-    
-    // Generate speech
-    const audioBuffer = await deepseek.synthesizeSpeechBuffer(text, languageCode);
-    
-    // Set appropriate headers for audio streaming
-    res.set({
-      'Content-Type': 'audio/mpeg',
-      'Content-Length': audioBuffer.length.toString(),
-      'Content-Disposition': 'inline',
-    });
-    
-    res.send(audioBuffer);
-    
-  } catch (error) {
-    console.error('Text-to-speech error:', error);
-    res.status(500).json({ error: 'Failed to generate speech' });
-  }
-});
+
 
 export { router as conversationRoutes }
