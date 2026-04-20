@@ -76,10 +76,36 @@ router.get('/stats', authenticateToken, async (req: AuthRequest, res: Response) 
     })
 
 
-    // Calculate streak days (simplified)
-    const streakDays = lastActivity 
-      ? Math.max(0, Math.floor((new Date().getTime() - lastActivity.completedAt.getTime()) / (1000 * 60 * 60 * 24)))
-      : 0
+    // Calculate streak days properly
+    // streak = consecutive days with activity ending today/yesterday
+    const recentActivity = await prisma.learningProgress.findMany({
+      where: { userId },
+      orderBy: { completedAt: 'desc' },
+      select: { completedAt: true },
+      take: 365
+    })
+
+    let streakDays = 0
+    if (recentActivity.length > 0) {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const activityDays = new Set(
+        recentActivity.map(a => {
+          const d = new Date(a.completedAt)
+          d.setHours(0, 0, 0, 0)
+          return d.getTime()
+        })
+      )
+      let checkDay = new Date(today)
+      // Allow streak to include today or yesterday as starting point
+      if (!activityDays.has(checkDay.getTime())) {
+        checkDay.setDate(checkDay.getDate() - 1)
+      }
+      while (activityDays.has(checkDay.getTime())) {
+        streakDays++
+        checkDay.setDate(checkDay.getDate() - 1)
+      }
+    }
 
     res.json({
       lessonsCompleted,
