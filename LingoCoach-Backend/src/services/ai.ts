@@ -201,6 +201,31 @@ export class DeepSeekService {
     }
   }
 
+  async generatePracticePhrase(language: string): Promise<string> {
+    try {
+      const response = await this.withTimeout(
+        this.client.chat.completions.create({
+          model: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a language teacher. Provide a single, conversational sentence (between 5 to 10 words) in ${language} for pronunciation practice. Return ONLY the text of the sentence without any quotation marks, translations, introductions, or explanations.`
+            }
+          ],
+          temperature: 0.8,
+          max_tokens: 50
+        }),
+        this.timeoutMs
+      )
+
+      const content = response.choices[0]?.message?.content?.trim() || ''
+      return content.replace(/^["']|["']$/g, ''); // Remove any lingering quotes
+    } catch (error) {
+      console.error('AI phrase generation error:', error)
+      return "Hello world" // Fallback
+    }
+  }
+
   private calculateSimilarity(str1: string, str2: string): number {
     const cleanStr1 = str1.replace(/[\W_]/g, '')
     const cleanStr2 = str2.replace(/[\W_]/g, '')
@@ -227,6 +252,51 @@ export class DeepSeekService {
       }
     }
     return matrix[str2.length][str1.length]
+  }
+
+  async generateLesson(
+    topic: string,
+    language: string,
+    level: string,
+    category: string
+  ): Promise<any> {
+    try {
+      const systemPrompt = `You are an expert language teacher. Create a complete, high-quality language lesson for ${language} at ${level} level.
+The topic is: ${topic}.
+The category is: ${category}.
+
+Return ONLY a JSON object matching this TypeScript structure:
+{
+  "title": "Clear concise lesson title",
+  "description": "Short engaging description",
+  "content": {
+    "vocabulary": [{ "term": "string", "translation": "string", "example": "string" }],
+    "grammar": [{ "title": "string", "explanation": "string", "examples": ["string"] }],
+    "practice": ["string"],
+    "quiz": [{ "question": "string", "options": ["string"], "answer": "string (must be one of the options)" }]
+  },
+  "duration": number (estimated minutes to complete)
+}
+
+Ensure the content is pedagogically sound, accurate for the language, and appropriate for the level. Return ONLY the JSON object, no other text.`
+
+      const response = await this.withTimeout(
+        this.client.chat.completions.create({
+          model: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
+          messages: [{ role: 'system', content: systemPrompt }],
+          temperature: 0.7,
+          max_tokens: 2000,
+          response_format: { type: 'json_object' }
+        }),
+        this.timeoutMs
+      )
+
+      const resContent = response.choices[0]?.message?.content || '{}'
+      return JSON.parse(resContent)
+    } catch (error) {
+      console.error('AI generate lesson error:', error)
+      throw new Error('Failed to generate lesson content via AI')
+    }
   }
 
   private generatePronunciationFeedback(
