@@ -1,5 +1,5 @@
 import './globals.css'
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { PWAInstaller } from '../components'
 import Navigation from '../components/Navigation'
@@ -8,12 +8,18 @@ import { AnimatedBackground } from '../components/AnimatedBackground'
 
 const inter = Inter({ subsets: ['latin'] })
 
+export const viewport: Viewport = {
+  themeColor: '#3b82f6',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: 'cover',
+}
+
 export const metadata: Metadata = {
   title: 'LingoCoach - AI Language Learning Platform',
-  description: 'Master languages with AI-powered learning',
+  description: 'Master languages rapidly with personalized AI-powered learning paths.',
   manifest: '/manifest.json',
-  themeColor: '#3b82f6',
-  viewport: 'minimum-scale=1, initial-scale=1, width=device-width, shrink-to-fit=no, viewport-fit=cover',
   icons: {
     icon: '/icons/icon-192x192.svg',
     apple: '/icons/apple-touch-icon.svg',
@@ -30,6 +36,8 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     siteName: 'LingoCoach',
+    title: 'LingoCoach - Your AI Language Tutor',
+    description: 'Learn a new language faster with personalized AI instruction.',
   },
 }
 
