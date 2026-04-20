@@ -1,44 +1,106 @@
-import axios from 'axios'
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
-// Create axios instance with base configuration
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  timeout: 30000,
+  headers: { 'Content-Type': 'application/json' },
 })
 
-// Request interceptor to add auth token
+let isRefreshing = false
+let failedQueue: Array<{ resolve: (token: string) => void; reject: (err: any) => void }> = []
+
+function processQueue(error: any, token: string | null = null) {
+  failedQueue.forEach((prom) => {
+    if (error) prom.reject(error)
+    else prom.resolve(token!)
+  })
+  failedQueue = []
+}
+
+// Attach token to every request
 api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('auth-token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+  (config: InternalAxiosRequestConfig) => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('auth-token')
+      if (token) config.headers.Authorization = `Bearer ${token}`
     }
     return config
   },
-  (error) => {
-    return Promise.reject(error)
-  }
+  (error) => Promise.reject(error)
 )
 
-// Response interceptor for error handling
+// Handle 401 with token refresh
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Handle unauthorized access
-      localStorage.removeItem('auth-token')
-      window.location.href = '/auth/signin'
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
+
+    if (
+      error.response?.status === 401 &&
+      (error.response?.data as any)?.code === 'TOKEN_EXPIRED' &&
+      !originalRequest._retry
+    ) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject })
+        }).then((token) => {
+          originalRequest.headers.Authorization = `Bearer ${token}`
+          return api(originalRequest)
+        })
+      }
+
+      originalRequest._retry = true
+      isRefreshing = true
+
+      const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh-token') : null
+
+      if (!refreshToken) {
+        isRefreshing = false
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('auth-token')
+          if (!window.location.pathname.startsWith('/auth/')) {
+            window.location.href = '/auth/signin'
+          }
+        }
+        return Promise.reject(error)
+      }
+
+      try {
+        const { data } = await axios.post(`${API_BASE_URL}/api/auth/refresh`, { refreshToken })
+        localStorage.setItem('auth-token', data.token)
+        localStorage.setItem('refresh-token', data.refreshToken)
+        processQueue(null, data.token)
+        originalRequest.headers.Authorization = `Bearer ${data.token}`
+        return api(originalRequest)
+      } catch (refreshError) {
+        processQueue(refreshError, null)
+        localStorage.removeItem('auth-token')
+        localStorage.removeItem('refresh-token')
+        if (!window.location.pathname.startsWith('/auth/')) {
+          window.location.href = '/auth/signin'
+        }
+        return Promise.reject(refreshError)
+      } finally {
+        isRefreshing = false
+      }
     }
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth-token')
+        localStorage.removeItem('refresh-token')
+        if (!window.location.pathname.startsWith('/auth/')) {
+          window.location.href = '/auth/signin'
+        }
+      }
+    }
+
     return Promise.reject(error)
   }
 )
 
-// API endpoints
 export const authAPI = {
   login: (credentials: { email: string; password: string }) =>
     api.post('/api/auth/login', credentials),
@@ -46,6 +108,7 @@ export const authAPI = {
     api.post('/api/auth/register', userData),
   logout: () => api.post('/api/auth/logout'),
   me: () => api.get('/api/auth/me'),
+  refresh: (refreshToken: string) => api.post('/api/auth/refresh', { refreshToken }),
 }
 
 export const userAPI = {
@@ -54,12 +117,12 @@ export const userAPI = {
     api.put('/api/users/profile', data),
   getPreferences: () => api.get('/api/users/preferences'),
   updatePreferences: (data: {
-    language?: string;
-    targetLanguage?: string;
-    learningLevel?: string;
-    dailyGoal?: number;
-    notifications?: any;
-    privacy?: any;
+    language?: string
+    targetLanguage?: string
+    learningLevel?: string
+    dailyGoal?: number
+    notifications?: Record<string, unknown>
+    privacy?: Record<string, unknown>
   }) => api.put('/api/users/preferences', data),
 }
 
@@ -70,9 +133,10 @@ export const conversationAPI = {
     language: string
     level: string
   }) => api.post('/api/conversations', data),
-  getConversations: () => api.get('/api/conversations'),
+  getConversations: (params?: { page?: number; limit?: number }) =>
+    api.get('/api/conversations', { params }),
   getConversation: (id: string) => api.get(`/api/conversations/${id}`),
-  speak: (data: { text: string, language?: string }) => api.post('/api/conversations/speak', data),
+  deleteConversation: (id: string) => api.delete(`/api/conversations/${id}`),
 }
 
 export const lessonAPI = {
@@ -80,19 +144,34 @@ export const lessonAPI = {
     language?: string
     level?: string
     category?: string
+    page?: number
+    limit?: number
   }) => api.get('/api/lessons', { params }),
   getLesson: (id: string) => api.get(`/api/lessons/${id}`),
-  completeLesson: (data: {
-    lessonId: string
-    score: number
-    timeSpent: number
-  }) => api.post('/api/lessons/complete', data),
+  completeLesson: (data: { lessonId: string; score: number; timeSpent: number }) =>
+    api.post('/api/lessons/complete', data),
+  createLesson: (data: {
+    title: string
+    description?: string
+    content: any
+    language: string
+    level: string
+    category: string
+    duration?: number
+  }) => api.post('/api/lessons', data),
+  generateLesson: (data: {
+    topic: string
+    language: string
+    level: string
+    category: string
+  }) => api.post('/api/lessons/generate', data),
 }
 
 export const pronunciationAPI = {
-  analyze: (formData: FormData) =>
-    api.post('/api/pronunciation/analyze', formData),
+  analyze: (data: { expectedText: string; transcription: string; language?: string }) =>
+    api.post('/api/pronunciation/analyze', data),
   getHistory: () => api.get('/api/pronunciation/history'),
+  generatePhrase: (language: string) => api.get('/api/pronunciation/generate', { params: { language } }),
 }
 
 export const dashboardAPI = {
