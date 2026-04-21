@@ -45,7 +45,7 @@ export class DeepSeekService {
 
   constructor(apiKey: string) {
     this.client = new OpenAI({
-      apiKey: process.env.GROQ_API_KEY || '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',
+      apiKey: process.env.GROQ_API_KEY || '',
       baseURL: process.env.AI_BASE_URL || 'https://api.groq.com/openai/v1'
     })
     const parsedTimeout = parseInt(process.env.DEEPSEEK_TIMEOUT_MS || '15000', 10)
