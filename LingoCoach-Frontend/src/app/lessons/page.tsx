@@ -62,10 +62,10 @@ export default function Lessons() {
   if (isLoading) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-          <div className="container mx-auto px-4 py-8">
-            <div className="h-9 w-32 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse mb-8" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="min-h-screen bg-background">
+          <div className="max-w-6xl mx-auto px-6 py-12">
+            <div className="h-12 w-48 bg-muted rounded-2xl animate-pulse mb-12" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {Array.from({ length: 6 }).map((_, i) => <LessonCardSkeleton key={i} />)}
             </div>
           </div>
@@ -76,37 +76,45 @@ export default function Lessons() {
 
   if (error) {
     return (
-      <div className="p-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 rounded-md">
-        Failed to load lessons. Please try again.
+      <div className="p-8 max-w-2xl mx-auto mt-20 glass-card text-red-600 dark:text-red-400 rounded-3xl border border-red-500/20 text-center">
+        <h3 className="text-xl font-bold mb-2">Oops!</h3>
+        <p>Failed to load lessons. Please try again later.</p>
       </div>
     )
   }
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Lessons</h1>
+      <div className="min-h-screen bg-background pb-20">
+        <div className="max-w-6xl mx-auto px-6 py-12">
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+            <div className="animate-fade-in">
+              <h1 className="text-4xl md:text-5xl font-black text-foreground tracking-tighter mb-4">
+                Learning Library
+              </h1>
+              <p className="text-lg text-muted-foreground max-w-xl leading-relaxed">
+                Choose from a variety of AI-generated lessons tailored to your level and goals.
+              </p>
+            </div>
             <Link href="/lessons/new">
-              <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95 font-semibold">
-                <Plus className="h-5 w-5" />
-                <span>New Lesson</span>
+              <button className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-all">
+                <Plus size={20} />
+                <span>Create Lesson</span>
               </button>
             </Link>
           </div>
           
           {/* Filters */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <div className="bg-card rounded-[2.5rem] border border-border p-8 mb-12 shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="space-y-3">
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">
                   Language
                 </label>
                 <select
                   value={filter.language}
                   onChange={(e) => setFilter({...filter, language: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-4 py-3 bg-secondary border-none rounded-2xl text-sm focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
                 >
                   <option value="">All Languages</option>
                   <option value="en">English</option>
@@ -116,14 +124,14 @@ export default function Lessons() {
                 </select>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <div className="space-y-3">
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">
                   Level
                 </label>
                 <select
                   value={filter.level}
                   onChange={(e) => setFilter({...filter, level: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-4 py-3 bg-secondary border-none rounded-2xl text-sm focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
                 >
                   <option value="">All Levels</option>
                   <option value="beginner">Beginner</option>
@@ -132,14 +140,14 @@ export default function Lessons() {
                 </select>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <div className="space-y-3">
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-1">
                   Category
                 </label>
                 <select
                   value={filter.category}
                   onChange={(e) => setFilter({...filter, category: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-4 py-3 bg-secondary border-none rounded-2xl text-sm focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
                 >
                   <option value="">All Categories</option>
                   <option value="grammar">Grammar</option>
@@ -153,44 +161,50 @@ export default function Lessons() {
           
           {/* Lessons Grid */}
           <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
             variants={containerVariants}
             {...motionListProps}
           >
             {lessons.map((lesson) => (
               <motion.div
                 key={lesson.id}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
+                className="bg-card rounded-[2.5rem] border border-border overflow-hidden hover:shadow-xl hover:border-primary/20 transition-all group"
                 variants={itemVariants}
               >
-                <div className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                      <BookOpen className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <div className="p-8">
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="p-4 bg-primary/10 text-primary rounded-2xl group-hover:scale-110 transition-transform">
+                      <BookOpen size={24} />
                     </div>
-                    <div className="flex items-center text-yellow-500">
-                      <Star className="h-4 w-4 fill-current" />
-                      <span className="text-sm font-medium ml-1">4.8</span>
+                    <div className="flex items-center gap-1.5 px-3 py-1 bg-yellow-500/10 text-yellow-600 rounded-full text-xs font-bold">
+                      <Star size={14} className="fill-current" />
+                      4.8
                     </div>
                   </div>
                   
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  <h3 className="text-xl font-black text-foreground mb-3 leading-tight group-hover:text-primary transition-colors">
                     {lesson.title}
                   </h3>
                   
-                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-                    {lesson.description || 'Learn key concepts in this lesson.'}
+                  <p className="text-muted-foreground text-sm mb-6 line-clamp-2 leading-relaxed">
+                    {lesson.description || 'Learn key concepts in this lesson with AI assistance.'}
                   </p>
                   
-                  <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    <Clock className="h-4 w-4 mr-1" />
-                    <span>{lesson.duration || 10} min</span>
+                  <div className="flex items-center gap-4 text-xs font-bold text-muted-foreground uppercase tracking-widest mb-8">
+                    <div className="flex items-center gap-1.5">
+                      <Clock size={14} />
+                      {lesson.duration || 10} min
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                      {lesson.level || 'Beginner'}
+                    </div>
                   </div>
                   
                   <Link href={`/lessons/${lesson.id}`}>
-                    <button className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                      <Play className="h-4 w-4 mr-2" />
-                      Start Lesson
+                    <button className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-secondary text-primary rounded-2xl font-bold group-hover:bg-primary group-hover:text-white transition-all shadow-sm">
+                      <Play size={18} />
+                      Start Learning
                     </button>
                   </Link>
                 </div>
@@ -198,16 +212,15 @@ export default function Lessons() {
             ))}
             
             {lessons.length === 0 && (
-              <motion.div
-                className="col-span-full text-center py-12"
-                variants={itemVariants}
-              >
-                <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No lessons found</h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Try adjusting your filters to see more lessons.
+              <div className="col-span-full py-20 text-center">
+                <div className="w-20 h-20 rounded-3xl bg-secondary flex items-center justify-center text-muted-foreground mx-auto mb-6">
+                  <BookOpen size={40} />
+                </div>
+                <h3 className="text-2xl font-bold mb-2">No lessons found</h3>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  Try adjusting your filters or create a new personalized lesson.
                 </p>
-              </motion.div>
+              </div>
             )}
           </motion.div>
         </div>
