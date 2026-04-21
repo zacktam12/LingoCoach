@@ -51,7 +51,7 @@
 
 @layer components {
   .gemini-gradient {
-    @apply bg-gradient-to-r from-[#4285F4] via-[#9171E2] to-[#E26A9A];
+    @apply bg-primary;
   }
   
   .glass-card {
