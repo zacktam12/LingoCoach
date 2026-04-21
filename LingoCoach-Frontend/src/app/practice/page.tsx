@@ -9,6 +9,8 @@ import { Spinner } from '@/components/ui/spinner'
 import { BookOpen, Plus, Trash2, Volume2, Sparkles, Languages, Star, Mic } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
+import { getFullLangCode } from '@/components/SpeechSynthesis'
 
 const languageConfig: Record<string, { label: string, color: string, bg: string, border: string }> = {
   es: { label: 'Spanish', color: 'text-orange-600', bg: 'bg-orange-500/10', border: 'border-orange-500/20 hover:border-orange-500/50' },
@@ -121,7 +123,7 @@ export default function PracticePage() {
 
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = langCode === 'en' ? 'en-US' : langCode;
+    utterance.lang = getFullLangCode(langCode);
     utterance.rate = 0.9; // Slightly slower for language learners!
     
     utterance.onend = () => setPlayingId(null);
@@ -186,30 +188,32 @@ export default function PracticePage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-background pb-20">
+      <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
         
-        {/* Dynamic Gamified Header */}
-        <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-b border-border">
-          <div className="max-w-7xl mx-auto px-4 py-12 md:py-16 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div>
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-bold mb-4">
-                <Sparkles className="h-4 w-4" /> Personal Phrasebook
+        {/* Dynamic Header */}
+        <div className="relative overflow-hidden border-b border-border bg-card/30 backdrop-blur-sm">
+          <div className="absolute top-0 right-0 w-96 h-96 gemini-gradient opacity-[0.03] blur-3xl -mr-48 -mt-48" />
+          <div className="max-w-6xl mx-auto px-6 py-12 md:py-20 flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
+            <div className="text-center md:text-left">
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-black uppercase tracking-widest mb-6">
+                <Sparkles size={14} /> Personal Phrasebook
               </motion.div>
-              <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="text-4xl md:text-5xl font-black text-foreground tracking-tight mb-4">
+              <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="text-4xl md:text-6xl font-black text-foreground tracking-tighter mb-6">
                 Master Your <span className="text-primary">Sentences</span>
               </motion.h1>
-              <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-lg text-muted-foreground max-w-xl">
-                Build a private collection of tricky phrases, native idioms, or grammar rules. Listen to them aloud, memorize them, and master your fluency.
+              <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-lg text-muted-foreground max-w-xl leading-relaxed">
+                Build a private collection of tricky phrases, native idioms, or grammar rules. Listen, practice, and master your fluency with AI.
               </motion.p>
             </div>
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }} className="hidden md:flex p-6 bg-card border-2 border-border rounded-3xl shadow-2xl rotate-3">
-              <div className="flex items-center gap-4">
-                <div className="p-4 bg-primary/10 rounded-2xl">
-                  <BookOpen className="h-10 w-10 text-primary" />
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }} className="p-8 bg-card border border-border rounded-[2.5rem] shadow-xl relative group">
+              <div className="absolute inset-0 gemini-gradient opacity-0 group-hover:opacity-[0.02] transition-opacity rounded-[2.5rem]" />
+              <div className="flex items-center gap-6">
+                <div className="p-5 bg-primary text-white rounded-2xl shadow-lg shadow-primary/20">
+                  <BookOpen size={32} />
                 </div>
                 <div>
-                  <div className="text-2xl font-black">{sentences.length}</div>
-                  <div className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Saved Phrases</div>
+                  <div className="text-4xl font-black leading-none mb-1">{sentences.length}</div>
+                  <div className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Phrases Saved</div>
                 </div>
               </div>
             </motion.div>
@@ -217,67 +221,69 @@ export default function PracticePage() {
         </div>
 
         {error || actionError ? (
-          <div className="max-w-7xl mx-auto mt-6 px-4">
-            <div className="p-4 bg-red-500/10 text-red-600 font-bold rounded-2xl border border-red-500/20">
+          <div className="max-w-6xl mx-auto mt-8 px-6">
+            <div className="p-4 bg-red-500/10 text-red-600 font-bold rounded-2xl border border-red-500/20 text-center text-sm">
               {actionError || 'Failed to load practice sentences'}
             </div>
           </div>
         ) : null}
 
-        <div className="max-w-7xl mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="max-w-6xl mx-auto px-6 py-12 md:py-16">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
             
-            {/* LEFT COLUMN: Add Form (Sticky) */}
-            <div className="lg:col-span-4 lg:sticky lg:top-24 space-y-6">
-              <div className="bg-card border border-border shadow-xl rounded-3xl p-6 md:p-8">
-                <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-2">
-                  <Plus className="h-6 w-6 text-primary" />
-                  Add Phrase
+            {/* LEFT COLUMN: Add Form */}
+            <div className="lg:col-span-4 lg:sticky lg:top-8 space-y-8">
+              <div className="bg-card border border-border shadow-sm rounded-[2.5rem] p-8">
+                <h2 className="text-xl font-bold text-foreground mb-8 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                    <Plus size={18} />
+                  </div>
+                  Add New Phrase
                 </h2>
 
                 <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-bold text-muted-foreground uppercase tracking-wide mb-2">Target Sentence</label>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1">Target Sentence</label>
                     <textarea
                       value={text}
                       onChange={(e) => setText(e.target.value)}
                       rows={3}
                       placeholder="E.g., No lo puedo creer..."
-                      className="w-full px-4 py-4 bg-secondary/50 border-none rounded-2xl shadow-inner focus:outline-none focus:ring-4 focus:ring-primary/20 text-foreground resize-none"
+                      className="w-full px-5 py-4 bg-secondary border-none rounded-2xl focus:ring-2 focus:ring-primary/20 text-foreground resize-none font-medium text-lg placeholder:text-muted-foreground/50 transition-all"
                     />
                   </div>
 
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-bold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-2">
-                        <Languages className="h-4 w-4" /> Language
+                  <div className="grid grid-cols-1 gap-6">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1 flex items-center gap-2">
+                        <Languages size={12} /> Language
                       </label>
                       <select
                         value={language}
                         onChange={(e) => setLanguage(e.target.value)}
-                        className="w-full px-4 py-4 bg-secondary/50 border-none rounded-2xl shadow-inner focus:outline-none focus:ring-4 focus:ring-primary/20 text-foreground font-bold cursor-pointer"
+                        className="w-full px-5 py-4 bg-secondary border-none rounded-2xl focus:ring-2 focus:ring-primary/20 text-foreground font-bold cursor-pointer appearance-none"
                       >
-                        <option value="es">🇪🇸 Spanish</option>
-                        <option value="en">🇬🇧 English</option>
-                        <option value="fr">🇫🇷 French</option>
-                        <option value="de">🇩🇪 German</option>
-                        <option value="it">🇮🇹 Italian</option>
-                        <option value="pt">🇵🇹 Portuguese</option>
+                        <option value="es">Spanish</option>
+                        <option value="en">English</option>
+                        <option value="fr">French</option>
+                        <option value="de">German</option>
+                        <option value="it">Italian</option>
+                        <option value="pt">Portuguese</option>
                       </select>
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-bold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-2">
-                        <Star className="h-4 w-4" /> Difficulty
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1 flex items-center gap-2">
+                        <Star size={12} /> Difficulty
                       </label>
                       <select
                         value={level}
                         onChange={(e) => setLevel(e.target.value)}
-                        className="w-full px-4 py-4 bg-secondary/50 border-none rounded-2xl shadow-inner focus:outline-none focus:ring-4 focus:ring-primary/20 text-foreground font-bold cursor-pointer"
+                        className="w-full px-5 py-4 bg-secondary border-none rounded-2xl focus:ring-2 focus:ring-primary/20 text-foreground font-bold cursor-pointer appearance-none"
                       >
-                        <option value="beginner">🌟 Beginner</option>
-                        <option value="intermediate">⚡ Intermediate</option>
-                        <option value="advanced">🔥 Advanced</option>
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
                       </select>
                     </div>
                   </div>
@@ -285,24 +291,32 @@ export default function PracticePage() {
                   <button
                     onClick={handleAdd}
                     disabled={saving || !text.trim()}
-                    className="w-full mt-4 flex items-center justify-center p-4 bg-primary text-primary-foreground font-bold rounded-2xl hover:bg-primary/90 hover:scale-[1.02] shadow-lg shadow-primary/20 transition-all disabled:opacity-50 disabled:hover:scale-100"
+                    className="w-full mt-4 flex items-center justify-center p-5 bg-primary text-primary-foreground font-bold rounded-2xl hover:scale-[1.02] active:scale-95 shadow-lg shadow-primary/20 transition-all disabled:opacity-50 disabled:hover:scale-100"
                   >
                     {saving ? (
                       <Spinner className="h-5 w-5 border-white border-t-transparent" />
                     ) : (
-                      <>Save Flashcard</>
+                      <>Save to Phrasebook</>
                     )}
                   </button>
                 </div>
               </div>
 
-              {/* Call to Action Banner */}
-              <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-3xl p-6 text-white shadow-xl shadow-purple-500/20">
-                <h3 className="text-lg font-bold mb-2 flex items-center gap-2"><Mic className="h-5 w-5" /> Ready to speak?</h3>
-                <p className="text-sm text-white/80 mb-4">Turn your written flashcards into audible practice sessions using our AI.</p>
+              {/* Tips Banner */}
+              <div className="glass-card rounded-[2.5rem] p-8 overflow-hidden relative group">
+                <div className="absolute top-0 right-0 w-32 h-32 gemini-gradient opacity-10 blur-3xl -mr-16 -mt-16 group-hover:opacity-20 transition-opacity" />
+                <h3 className="text-lg font-bold mb-3 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+                    <Mic size={18} />
+                  </div>
+                  Speaking Practice
+                </h3>
+                <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+                  Click the microphone on any card to practice your pronunciation. Our AI will give you real-time feedback.
+                </p>
                 <Link href="/pronunciation">
-                  <button className="w-full py-3 bg-white text-indigo-700 font-bold rounded-xl hover:shadow-lg transition-all active:scale-95">
-                    Start Speaking
+                  <button className="w-full py-4 bg-secondary text-primary font-bold rounded-2xl hover:bg-primary hover:text-white transition-all">
+                    Try Pronunciation Coach
                   </button>
                 </Link>
               </div>
@@ -310,20 +324,25 @@ export default function PracticePage() {
 
             {/* RIGHT COLUMN: Flashcards Grid */}
             <div className="lg:col-span-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-black text-foreground">Your Sandbox ({sentences.length})</h2>
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-2xl font-black text-foreground tracking-tight">Your Sandbox</h2>
+                <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest bg-secondary px-3 py-1 rounded-full">
+                  {sentences.length} total
+                </div>
               </div>
 
               {sentences.length === 0 ? (
-                <div className="bg-card border-2 border-dashed border-border rounded-3xl p-12 text-center flex flex-col items-center justify-center h-64">
-                  <div className="p-4 bg-secondary rounded-full mb-4">
-                    <BookOpen className="h-8 w-8 text-muted-foreground" />
+                <div className="bg-card border border-border rounded-[2.5rem] p-16 text-center flex flex-col items-center justify-center min-h-[400px] shadow-sm">
+                  <div className="w-20 h-20 rounded-3xl bg-secondary flex items-center justify-center text-muted-foreground mb-6">
+                    <BookOpen size={40} />
                   </div>
-                  <h3 className="text-xl font-bold dark:text-white mb-2">It's quiet in here...</h3>
-                  <p className="text-muted-foreground">Save your first vocabulary phrase to the left to start building your collection!</p>
+                  <h3 className="text-2xl font-bold mb-2">Your phrasebook is empty</h3>
+                  <p className="text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                    Add your first vocabulary phrase to the left to start building your personal collection!
+                  </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <AnimatePresence>
                     {sentences.map((s, i) => {
                       const lang = languageConfig[s.language] || languageConfig['en']
@@ -332,51 +351,56 @@ export default function PracticePage() {
                       return (
                         <motion.div
                           key={s.id}
-                          initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                          animate={{ opacity: 1, scale: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.9, filter: 'blur(5px)' }}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
                           transition={{ delay: i * 0.05 }}
-                          className={`group relative bg-card rounded-3xl p-6 border-2 transition-all hover:-translate-y-1 hover:shadow-xl ${lang.border}`}
+                          className="group relative bg-card rounded-[2.5rem] p-8 border border-border hover:border-primary/30 transition-all hover:shadow-xl hover:shadow-primary/5 flex flex-col"
                         >
                           {/* Tags */}
-                          <div className="flex items-center justify-between mb-6">
+                          <div className="flex items-center justify-between mb-8">
                             <div className="flex gap-2">
-                              <span className={`px-3 py-1 rounded-lg text-xs tracking-wider uppercase border ${lang.bg} ${lang.color} font-black`}>
+                              <span className={cn("px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border", lang.bg, lang.color, "border-transparent")}>
                                 {lang.label}
                               </span>
-                              <span className={`px-3 py-1 rounded-lg text-xs tracking-wider uppercase border ${lvlBadge}`}>
+                              <span className={cn("px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border", lvlBadge, "border-transparent")}>
                                 {s.level || 'beginner'}
                               </span>
                             </div>
                             <button
                               onClick={() => handleDelete(s.id)}
-                              className="opacity-0 group-hover:opacity-100 p-2 rounded-full hover:bg-red-500/10 hover:text-red-600 text-muted-foreground transition-all focus:opacity-100"
-                              title="Delete Flashcard"
+                              className="opacity-0 group-hover:opacity-100 p-2 rounded-xl hover:bg-red-500/10 hover:text-red-600 text-muted-foreground transition-all"
+                              title="Delete Phrase"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 size={16} />
                             </button>
                           </div>
 
                           {/* Sentence Content */}
-                          <div className="mb-6">
-                            <p className="text-xl md:text-2xl font-bold leading-tight text-foreground break-words min-h-[3rem]">
+                          <div className="mb-8 flex-1">
+                            <p className="text-2xl font-bold leading-tight text-foreground break-words">
                               {s.text}
                             </p>
                           </div>
 
                           {/* Score / Results Area */}
                           {scores[s.id] && (
-                            <div className="mb-4 p-4 rounded-2xl bg-secondary/50 border border-border/50">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Your Pronunciation</span>
-                                <span className={`text-sm font-black ${scores[s.id].score >= 80 ? 'text-green-500' : scores[s.id].score >= 50 ? 'text-yellow-500' : 'text-red-500'}`}>
-                                  {scores[s.id].score}% Accuracy
+                            <div className="mb-8 p-6 rounded-3xl bg-secondary/50 border border-border/50 animate-fade-in">
+                              <div className="flex items-center justify-between mb-4">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Accuracy</span>
+                                <span className={cn("text-sm font-black", scores[s.id].score >= 80 ? 'text-green-500' : scores[s.id].score >= 50 ? 'text-yellow-500' : 'text-red-500')}>
+                                  {scores[s.id].score}%
                                 </span>
                               </div>
-                              <p className="text-sm italic text-foreground/80 mb-2">"{scores[s.id].transcript}"</p>
-                              <div className="flex flex-wrap gap-1">
+                              <p className="text-sm font-medium italic text-foreground leading-relaxed mb-4">"{scores[s.id].transcript}"</p>
+                              <div className="flex flex-wrap gap-1.5">
                                 {scores[s.id].words.map((w, idx) => (
-                                  <span key={idx} className={w.matched ? 'text-green-600 dark:text-green-400 font-medium' : 'text-red-500 dark:text-red-400 font-medium line-through decoration-red-500/50'}>
+                                  <span key={idx} className={cn(
+                                    "px-2 py-0.5 rounded-md text-xs font-bold",
+                                    w.matched 
+                                      ? 'bg-green-500/10 text-green-600' 
+                                      : 'bg-red-500/10 text-red-500 line-through decoration-2'
+                                  )}>
                                     {w.word}
                                   </span>
                                 ))}
@@ -385,32 +409,33 @@ export default function PracticePage() {
                           )}
 
                           {/* Action Bar */}
-                          <div className="flex items-center justify-between pt-4 border-t border-border mt-auto">
-                            <span className="text-xs font-bold text-muted-foreground flex items-center gap-1">
-                              <Sparkles className="h-3 w-3" /> Flashcard
-                            </span>
-                            <div className="flex gap-2">
+                          <div className="flex items-center justify-between pt-6 border-t border-border">
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <Sparkles size={12} className="text-primary" />
+                              <span className="text-[10px] font-black uppercase tracking-widest">Phrase</span>
+                            </div>
+                            <div className="flex gap-3">
                               <button 
                                 onClick={() => handleRecord(s.text, s.language, s.id)}
-                                className={`p-3 rounded-full shadow-md transition-transform hover:scale-110 active:scale-95 ${
+                                className={cn(
+                                  "w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-sm",
                                   recordingId === s.id 
-                                    ? 'bg-red-500 text-white animate-pulse shadow-red-500/50' 
-                                    : 'bg-secondary text-foreground hover:bg-primary/20 hover:text-primary border border-border'
-                                }`}
-                                title="Practice Speaking"
+                                    ? 'bg-red-500 text-white animate-pulse shadow-red-500/20' 
+                                    : 'bg-secondary text-primary hover:bg-primary hover:text-white'
+                                )}
                               >
-                                <Mic className={`h-5 w-5 ${recordingId === s.id ? 'animate-bounce' : ''}`} />
+                                <Mic size={20} />
                               </button>
                               <button 
                                 onClick={() => handleSpeak(s.text, s.language, s.id)}
-                                className={`p-3 rounded-full shadow-md transition-transform hover:scale-110 active:scale-95 ${
+                                className={cn(
+                                  "w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-sm",
                                   playingId === s.id 
-                                    ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white animate-pulse shadow-blue-500/50' 
-                                    : 'bg-primary text-primary-foreground hover:bg-primary/90'
-                                }`}
-                                title="Listen"
+                                    ? 'gemini-gradient text-white animate-pulse shadow-indigo-500/20' 
+                                    : 'bg-secondary text-primary hover:bg-primary hover:text-white'
+                                )}
                               >
-                                <Volume2 className="h-5 w-5" />
+                                <Volume2 size={20} />
                               </button>
                             </div>
                           </div>
