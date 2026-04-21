@@ -574,7 +574,7 @@ export default function ConversationDetail({ params }: { params: { id: string } 
                     handleTyping()
                   }}
                   onKeyPress={handleKeyPress}
-                  placeholder={isRecording ? "Listening to you..." : "Message LingoCoach..."}
+                  placeholder={isRecording ? "Listening to you..." : "Message DiburAI..."}
                   className="w-full bg-card border border-border rounded-2xl md:rounded-[2rem] px-5 py-3.5 md:py-4 pr-14 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm resize-none max-h-32 overflow-y-auto"
                   rows={1}
                   disabled={sending}
@@ -594,7 +594,7 @@ export default function ConversationDetail({ params }: { params: { id: string } 
             </div>
             
             <p className="text-[10px] text-center text-muted-foreground mt-3">
-              LingoCoach can make mistakes. Consider checking important grammar rules.
+              DiburAI can make mistakes. Consider checking important grammar rules.
             </p>
           </div>
         </div>
