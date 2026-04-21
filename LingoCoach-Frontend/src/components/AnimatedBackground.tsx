@@ -66,28 +66,28 @@ export function AnimatedBackground() {
 
   if (prefersReducedMotion) {
     return (
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-background" />
     )
   }
 
   return (
-    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-background">
       <motion.div
-        className={`absolute -top-32 -left-32 h-96 w-96 rounded-full blur-3xl ${palette.blob1} ${levelOpacity}`}
+        className={`absolute -top-32 -left-32 h-[30rem] w-[30rem] rounded-full blur-[100px] ${palette.blob1} opacity-30 dark:opacity-20`}
         animate={{ x: [0, 80, -40, 0], y: [0, 40, -30, 0] }}
         transition={{ duration: 32, repeat: Infinity, ease: "linear" }}
       />
       <motion.div
-        className={`absolute -bottom-40 -right-24 h-[28rem] w-[28rem] rounded-full blur-3xl ${palette.blob2} ${levelOpacity}`}
+        className={`absolute -bottom-40 -right-24 h-[35rem] w-[35rem] rounded-full blur-[100px] ${palette.blob2} opacity-25 dark:opacity-15`}
         animate={{ x: [0, -60, 40, 0], y: [0, -30, 20, 0] }}
         transition={{ duration: 38, repeat: Infinity, ease: "linear", delay: 4 }}
       />
       <motion.div
-        className={`absolute top-1/3 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full blur-3xl ${palette.blob3} ${levelOpacity}`}
-        animate={{ y: [0, -40, 40, 0], opacity: [0.4, 0.8, 0.5, 0.4] }}
+        className={`absolute top-1/3 left-1/2 h-[25rem] w-[25rem] -translate-x-1/2 rounded-full blur-[100px] ${palette.blob3} opacity-20 dark:opacity-10`}
+        animate={{ y: [0, -40, 40, 0], opacity: [0.2, 0.4, 0.3, 0.2] }}
         transition={{ duration: 30, repeat: Infinity, ease: "easeInOut", delay: 2 }}
       />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.05),_transparent_55%),_radial-gradient(circle_at_bottom,_rgba(37,99,235,0.15),_transparent_55%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.03),_transparent_70%),_radial-gradient(circle_at_bottom,_rgba(0,0,0,0.02),_transparent_70%)] dark:bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.05),_transparent_55%),_radial-gradient(circle_at_bottom,_rgba(37,99,235,0.15),_transparent_55%)]" />
     </div>
   )
 }
