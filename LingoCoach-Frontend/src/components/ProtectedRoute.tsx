@@ -15,7 +15,9 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
       const storedToken = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null
 
       if (!storedToken) {
-        logout()
+        // No token found, redirect to sign in
+        setChecking(false)
+        router.push('/auth/signin')
         return
       }
 
@@ -30,12 +32,14 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
         setUser(res.data.user)
         setChecking(false)
       } catch {
+        // Token is invalid, logout and redirect
         logout()
+        router.push('/auth/signin')
       }
     }
 
     verify()
-  }, [])
+  }, [isAuthenticated, user, router, setUser, logout])
 
   if (checking) {
     return (
