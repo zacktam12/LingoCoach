@@ -19,7 +19,8 @@ import {
   Globe,
   Github,
   Linkedin,
-  Send
+  Send,
+  Heart
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -302,13 +303,13 @@ export default function Home() {
       {/* Footer */}
       <footer className="py-20 border-t border-border">
         <div className="container mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-12 mb-20">
-            <div className="col-span-2">
+          <div className="flex flex-col md:flex-row justify-between items-start gap-12 mb-20">
+            <div className="max-w-md">
               <div className="flex items-center gap-2 mb-8">
                 <Image src="/logo.png" alt="DiburAI" width={40} height={40} className="rounded-xl shadow-lg" />
                 <span className="font-black text-2xl tracking-tighter">DiburAI</span>
               </div>
-              <p className="text-muted-foreground max-w-sm leading-relaxed mb-8">
+              <p className="text-muted-foreground leading-relaxed mb-8">
                advanced AI language tutor. Build confidence, perfect your accent, and achieve fluency faster than ever.
               </p>
               <div className="flex gap-4">
@@ -323,27 +324,11 @@ export default function Home() {
                 </Link>
               </div>
             </div>
-            <div>
-              <h4 className="font-black uppercase tracking-widest text-xs mb-8">Product</h4>
-              <ul className="space-y-4">
-                {["Features", "Pricing", "Enterprise", "Roadmap"].map((item) => (
-                  <li key={item}><Link href="#" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors">{item}</Link></li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-black uppercase tracking-widest text-xs mb-8">Support</h4>
-              <ul className="space-y-4">
-                {["Help Center", "Community", "Privacy Policy", "Terms"].map((item) => (
-                  <li key={item}><Link href="#" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors">{item}</Link></li>
-                ))}
-              </ul>
-            </div>
           </div>
           <div className="pt-12 border-t border-border flex flex-col md:flex-row items-center justify-between gap-8 text-sm font-bold text-muted-foreground">
             <div>&copy; {new Date().getFullYear()} DiburAI. All rights reserved.</div>
             <div className="flex items-center gap-8">
-              <span>Made with <Sparkles className="inline text-primary mx-1" size={14} /> for learners</span>
+              <span>Made with <Heart className="inline text-red-500 mx-1 fill-current" size={14} /> by ZakifyTech</span>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 All systems operational
