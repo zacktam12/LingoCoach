@@ -11,7 +11,7 @@ export default function GlobalLoading() {
             <Loader2 className="h-10 w-10 text-primary animate-spin" />
           </div>
           <p className="text-lg text-foreground">
-            Loading your LingoCoach experience...
+            Loading your DiburAI experience...
           </p>
         </CardContent>
       </Card>

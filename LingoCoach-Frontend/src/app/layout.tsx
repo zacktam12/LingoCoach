@@ -2,9 +2,11 @@ import './globals.css'
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { PWAInstaller } from '../components'
-import Navigation from '../components/Navigation'
+import Sidebar from '../components/Sidebar'
 import { QueryProvider } from '../providers/QueryProvider'
+import { ThemeProvider } from '../providers/ThemeProvider'
 import { AnimatedBackground } from '../components/AnimatedBackground'
+import MainContent from '../components/MainContent'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -17,7 +19,7 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'LingoCoach - AI Language Learning Platform',
+  title: 'DiburAI - AI Language Learning Platform',
   description: 'Master languages rapidly with personalized AI-powered learning paths.',
   manifest: '/manifest.json',
   icons: {
@@ -27,16 +29,16 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'LingoCoach',
+    title: 'DiburAI',
   },
-  applicationName: 'LingoCoach',
+  applicationName: 'DiburAI',
   formatDetection: {
     telephone: false,
   },
   openGraph: {
     type: 'website',
-    siteName: 'LingoCoach',
-    title: 'LingoCoach - Your AI Language Tutor',
+    siteName: 'DiburAI',
+    title: 'DiburAI - Your AI Language Tutor',
     description: 'Learn a new language faster with personalized AI instruction.',
   },
 }
@@ -48,12 +50,21 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${inter.className} bg-background text-foreground`}>
         <QueryProvider>
-          <AnimatedBackground />
-          <Navigation />
-          <main>{children}</main>
-          <PWAInstaller />
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <AnimatedBackground />
+            <div className="flex min-h-screen">
+              <Sidebar />
+              <MainContent>{children}</MainContent>
+            </div>
+            <PWAInstaller />
+          </ThemeProvider>
         </QueryProvider>
       </body>
     </html>
