@@ -1,8 +1,9 @@
 'use client'
 
 import { useDashboardData } from '@/hooks/useDashboardData'
-import { BookOpen, MessageCircle, Mic, Trophy, Calendar, Sparkles, LayoutDashboard, Settings, ArrowRight, Bot, X, Send } from 'lucide-react'
+import { BookOpen, MessageCircle, Mic, Trophy, Calendar, Sparkles, LayoutDashboard, Settings, ArrowRight, Bot, X, Send, Plus } from 'lucide-react'
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { Spinner } from '@/components/ui/spinner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -136,197 +137,215 @@ export default function Dashboard() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-background pb-20">
-        <div className="max-w-5xl mx-auto px-4 py-8">
+      <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
+        <div className="max-w-6xl mx-auto px-6 py-12">
           
           {/* Header Area */}
-          <div className="flex items-center justify-between mb-10">
-            <div>
-              <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-2">Welcome Back! 👋</h1>
-              <p className="text-muted-foreground flex items-center gap-2">
-                It's great to see you. Ready to dive back into your learning journey?
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+            <div className="animate-fade-in">
+              <h1 className="text-4xl md:text-5xl font-black text-foreground tracking-tighter mb-4">
+                Welcome back! 👋
+              </h1>
+              <p className="text-lg text-muted-foreground max-w-xl leading-relaxed">
+                Ready to continue your language journey? Here's a snapshot of your progress and recommended next steps.
               </p>
             </div>
-            <div className="flex gap-2">
-              <Link href="/profile" className="p-2 rounded-full hover:bg-secondary/50 transition-colors">
-                <Settings className="h-6 w-6 text-muted-foreground" />
+            <div className="flex gap-3">
+              <Link 
+                href="/conversations/new" 
+                className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-all"
+              >
+                <Plus size={20} />
+                New Chat
               </Link>
             </div>
           </div>
 
           <motion.div 
-            className="space-y-8"
+            className="grid grid-cols-1 lg:grid-cols-3 gap-8"
             initial="hidden"
             animate="visible"
             variants={containerVariants}
           >
-            <motion.section variants={itemVariants} className="mb-10">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-foreground">
-                <Sparkles className="h-5 w-5 text-primary" />
-                Your Progress
-              </h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {metricCards.map((stat, idx) => (
-                  <div key={idx} className="bg-card p-5 rounded-2xl border border-border shadow-sm flex flex-col items-center justify-center text-center hover:border-primary/30 transition-colors">
-                    <div className={`${stat.color} ${stat.bg} p-3 rounded-xl mb-3`}>
-                      {stat.icon}
-                    </div>
-                    <div className="text-3xl font-black mb-1">{stat.value}</div>
-                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{stat.label}</div>
+            {/* Left Column: Stats & Recommendations */}
+            <div className="lg:col-span-2 space-y-10">
+              <motion.section variants={itemVariants}>
+                <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-foreground">
+                  <div className="w-8 h-8 rounded-lg gemini-gradient flex items-center justify-center text-white shadow-sm">
+                    <Trophy size={18} />
                   </div>
-                ))}
-              </div>
-            </motion.section>
+                  Your Performance
+                </h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {metricCards.map((stat, idx) => (
+                    <div key={idx} className="bg-card p-6 rounded-[2rem] border border-border shadow-sm flex flex-col items-center justify-center text-center hover:shadow-md hover:border-primary/20 transition-all group">
+                      <div className={`${stat.color} ${stat.bg} p-4 rounded-2xl mb-4 group-hover:scale-110 transition-transform`}>
+                        {stat.icon}
+                      </div>
+                      <div className="text-3xl font-black mb-1">{stat.value}</div>
+                      <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </motion.section>
 
-            {actionCards.length > 0 && (
-              <motion.section variants={itemVariants} className="mb-10">
-                <h2 className="text-xl font-bold mb-4 text-foreground">Next Steps</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <motion.section variants={itemVariants}>
+                <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-foreground">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white shadow-sm">
+                    <Sparkles size={18} />
+                  </div>
+                  Recommended for You
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {actionCards.map((action: any, aIdx: number) => (
-                    <Link key={aIdx} href={action.href}>
-                      <div className={`group flex flex-col h-full justify-between p-6 rounded-2xl border transition-all duration-300 ${
+                    <Link key={aIdx} href={action.href} className="group">
+                      <div className={cn(
+                        "flex flex-col h-full justify-between p-8 rounded-[2.5rem] border transition-all duration-300",
                         action.primary 
-                          ? 'bg-gradient-to-br from-primary to-blue-600 text-white shadow-lg shadow-primary/20 hover:-translate-y-1' 
-                          : 'bg-card text-foreground border-border hover:bg-secondary/50 hover:border-primary/50'
-                      }`}>
+                          ? 'bg-card border-primary/20 shadow-lg hover:shadow-primary/10 hover:border-primary/40' 
+                          : 'bg-card border-border hover:bg-accent/50 hover:border-primary/20'
+                      )}>
                         <div>
-                          <div className={`p-3 w-fit rounded-xl mb-4 ${action.primary ? 'bg-white/20' : 'bg-primary/10 text-primary'}`}>
+                          <div className={cn(
+                            "p-4 w-fit rounded-2xl mb-6 group-hover:scale-110 transition-transform",
+                            action.primary ? 'gemini-gradient text-white' : 'bg-secondary text-primary'
+                          )}>
                             {action.icon}
                           </div>
-                          <h3 className="text-sm font-semibold opacity-80 uppercase tracking-wide mb-1">{action.title}</h3>
-                          <p className={`text-xl font-bold line-clamp-2 ${action.primary ? 'text-white' : 'text-foreground'}`}>{action.label}</p>
+                          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">{action.title}</h3>
+                          <p className="text-2xl font-black leading-tight mb-4">{action.label}</p>
                         </div>
-                        <div className="mt-6 flex justify-end">
-                           <ArrowRight className={`h-6 w-6 transition-transform group-hover:translate-x-2 ${action.primary ? 'text-white/80' : 'text-primary'}`} />
+                        <div className="flex items-center text-primary font-bold gap-2 group-hover:gap-4 transition-all mt-4">
+                          Start now <ArrowRight size={18} />
                         </div>
                       </div>
                     </Link>
                   ))}
                 </div>
               </motion.section>
-            )}
+            </div>
 
-            {/* Quick Shortcuts Bar */}
-            <motion.section variants={itemVariants} className="pt-6 border-t border-border">
-              <h2 className="text-lg font-bold mb-4 text-foreground opacity-80">Quick Links</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Link href="/pronunciation" className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all hover:shadow-md group">
-                  <div className="p-3 rounded-xl bg-purple-500/10 text-purple-600 group-hover:scale-110 transition-transform">
-                    <Mic className="h-6 w-6" />
+            {/* Right Column: Mini Activity/Sidebar info */}
+            <div className="space-y-8">
+              <motion.section variants={itemVariants} className="bg-card rounded-[2.5rem] border border-border p-8 shadow-sm">
+                <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center text-white shadow-sm">
+                    <Calendar size={18} />
                   </div>
-                  <span className="text-xs font-bold text-foreground">Pronunciation</span>
-                </Link>
-                <Link href="/conversations/new" className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all hover:shadow-md group">
-                  <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-600 group-hover:scale-110 transition-transform">
-                    <MessageCircle className="h-6 w-6" />
+                  Daily Goal
+                </h2>
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between text-sm font-bold">
+                    <span className="text-muted-foreground">Progress</span>
+                    <span>{Math.min(100, (stats.lessonsCompleted || 0) * 20)}%</span>
                   </div>
-                  <span className="text-xs font-bold text-foreground">AI Chat</span>
-                </Link>
-                <Link href="/achievements" className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all hover:shadow-md group">
-                  <div className="p-3 rounded-xl bg-yellow-500/10 text-yellow-600 group-hover:scale-110 transition-transform">
-                    <Trophy className="h-6 w-6" />
+                  <div className="h-4 bg-secondary rounded-full overflow-hidden">
+                    <div 
+                      className="h-full gemini-gradient rounded-full" 
+                      style={{ width: `${Math.min(100, (stats.lessonsCompleted || 0) * 20)}%` }}
+                    />
                   </div>
-                  <span className="text-xs font-bold text-foreground">Rewards</span>
-                </Link>
-                <Link href="/lessons" className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all hover:shadow-md group">
-                  <div className="p-3 rounded-xl bg-blue-500/10 text-blue-600 group-hover:scale-110 transition-transform">
-                    <BookOpen className="h-6 w-6" />
-                  </div>
-                  <span className="text-xs font-bold text-foreground">Library</span>
-                </Link>
-              </div>
-            </motion.section>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    You've completed <b>{stats.lessonsCompleted || 0} lessons</b> today. Keep it up to maintain your <b>{stats.streakDays || 0} day streak!</b>
+                  </p>
+                </div>
+              </motion.section>
 
+              <motion.section variants={itemVariants} className="glass-card rounded-[2.5rem] p-8 overflow-hidden relative group cursor-pointer" onClick={() => setIsChatOpen(true)}>
+                <div className="absolute top-0 right-0 w-32 h-32 gemini-gradient opacity-10 blur-3xl -mr-16 -mt-16 group-hover:opacity-20 transition-opacity" />
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                  <Bot size={20} className="text-primary" />
+                  Quick Chat
+                </h3>
+                <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+                  Need a quick translation or grammar check? Just ask your AI tutor.
+                </p>
+                <div className="flex items-center gap-2 px-4 py-3 bg-background/50 border border-border rounded-xl text-muted-foreground text-sm">
+                  Type something...
+                </div>
+              </motion.section>
+            </div>
           </motion.div>
         </div>
-      </div>
 
-      {/* Floating AI Chat Widget */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        {/* Floating Quick Chat (Optional: Keep or redesign) */}
         <AnimatePresence>
           {isChatOpen && (
             <motion.div 
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              initial={{ opacity: 0, y: 100, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 20, scale: 0.95 }}
-              className="mb-4 w-[350px] sm:w-[400px] h-[500px] max-h-[80vh] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+              exit={{ opacity: 0, y: 100, scale: 0.9 }}
+              className="fixed bottom-6 right-6 w-full max-w-[400px] z-50 px-4"
             >
-              {/* Chat Header */}
-              <div className="p-4 bg-primary text-primary-foreground flex justify-between items-center shadow-sm z-10">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-white/20 flex flex-col justify-center items-center">
-                    <Bot className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm">AI Tutor</h3>
-                    <p className="text-[10px] text-primary-foreground/80 lowercase">Always here to help</p>
-                  </div>
-                </div>
-                <button onClick={() => setIsChatOpen(false)} className="hover:bg-white/20 p-2 rounded-full transition-colors">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              {/* Messages Area */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-background/50">
-                {messages.map((msg) => (
-                  <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] p-3 rounded-2xl ${
-                      msg.role === 'user' 
-                        ? 'bg-primary text-primary-foreground rounded-br-none' 
-                        : 'bg-secondary text-secondary-foreground rounded-bl-none'
-                    }`}>
-                      <p className="text-sm">{msg.content}</p>
+              <div className="bg-card border border-border rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-[500px]">
+                <div className="p-6 border-b border-border flex items-center justify-between bg-card/80 backdrop-blur-md sticky top-0 z-10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full gemini-gradient flex items-center justify-center text-white">
+                      <Bot size={20} />
                     </div>
-                  </div>
-                ))}
-                {isSubmitting && (
-                  <div className="flex justify-start">
-                    <div className="bg-secondary p-4 rounded-2xl rounded-bl-none">
-                      <div className="flex gap-1">
-                        <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce"></span>
-                        <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                        <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                    <div>
+                      <h3 className="font-bold text-sm">AI Assistant</h3>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                        <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Online</span>
                       </div>
                     </div>
                   </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* Input Area */}
-              <div className="p-3 bg-card border-t border-border">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                    placeholder="Ask a quick question..."
-                    className="flex-1 bg-secondary border-transparent focus:bg-background focus:ring-2 focus:ring-primary/20 rounded-xl px-4 py-2 text-sm transition-all outline-none"
-                    disabled={isSubmitting}
-                  />
-                  <button 
-                    onClick={handleSendMessage}
-                    disabled={!inputValue.trim() || isSubmitting}
-                    className="p-2 bg-primary text-primary-foreground rounded-xl disabled:opacity-50 hover:bg-primary/90 transition-colors"
-                  >
-                    <Send className="h-5 w-5" />
+                  <button onClick={() => setIsChatOpen(false)} className="p-2 hover:bg-secondary rounded-full transition-colors">
+                    <X size={20} />
                   </button>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                  {messages.map((m, i) => (
+                    <div key={i} className={cn("flex", m.role === 'user' ? "justify-end" : "justify-start")}>
+                      <div className={cn(
+                        "max-w-[85%] px-4 py-3 rounded-2xl text-sm",
+                        m.role === 'user' 
+                          ? "bg-primary text-primary-foreground rounded-tr-none shadow-md" 
+                          : "bg-secondary text-secondary-foreground rounded-tl-none"
+                      )}>
+                        {m.content}
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                <div className="p-4 border-t border-border bg-card">
+                  <div className="relative">
+                    <input 
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                      placeholder="Ask anything..."
+                      className="w-full bg-secondary border-none rounded-2xl px-5 py-4 pr-12 text-sm focus:ring-2 focus:ring-primary/20 transition-all"
+                    />
+                    <button 
+                      onClick={handleSendMessage}
+                      disabled={!inputValue.trim() || isSubmitting}
+                      className="absolute right-2 top-2 w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center hover:bg-primary/90 disabled:opacity-50 transition-colors shadow-lg shadow-primary/20"
+                    >
+                      {isSubmitting ? <Spinner className="w-4 h-4" /> : <Send size={18} />}
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <button 
-          onClick={() => setIsChatOpen(!isChatOpen)}
-          className={`h-14 w-14 rounded-full flex items-center justify-center shadow-xl transition-all hover:scale-105 active:scale-95 ${
-            isChatOpen ? 'bg-secondary text-foreground' : 'bg-primary text-white'
-          }`}
-        >
-          {isChatOpen ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
-        </button>
+        {!isChatOpen && (
+          <button 
+            onClick={() => setIsChatOpen(true)}
+            className="fixed bottom-8 right-8 w-16 h-16 rounded-full gemini-gradient text-white flex items-center justify-center shadow-2xl hover:scale-110 transition-transform z-40 group"
+          >
+            <Bot size={28} />
+            <div className="absolute right-full mr-4 px-4 py-2 bg-card border border-border rounded-xl text-sm font-bold text-foreground opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-xl">
+              Quick Help
+            </div>
+          </button>
+        )}
       </div>
     </ProtectedRoute>
   )
