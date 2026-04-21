@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { CheckCircle, XCircle, ChevronRight, ChevronLeft, BookOpen, Clock, Trophy, Volume2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { getFullLangCode } from '@/components/SpeechSynthesis'
 
 interface VocabItem { term: string; translation?: string; example?: string }
 interface GrammarRule { title?: string; explanation?: string; examples?: string[] }
@@ -73,7 +74,7 @@ export default function LessonDetail({ params }: { params: { id: string } }) {
   const speak = (text: string) => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       const utt = new SpeechSynthesisUtterance(text)
-      utt.lang = lesson?.language || 'en'
+      utt.lang = getFullLangCode(lesson?.language || 'en')
       window.speechSynthesis.speak(utt)
     }
   }
