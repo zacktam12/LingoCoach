@@ -6,9 +6,16 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 export default function PronunciationPage() {
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="container mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Pronunciation Practice</h1>
+      <div className="min-h-screen bg-background pb-20">
+        <div className="max-w-6xl mx-auto px-6 py-12">
+          <div className="mb-12 animate-fade-in">
+            <h1 className="text-4xl md:text-5xl font-black text-foreground tracking-tighter mb-4">
+              Pronunciation Coach
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-xl leading-relaxed">
+              Refine your accent and speaking skills with real-time AI feedback.
+            </p>
+          </div>
           <PronunciationPractice />
         </div>
       </div>
