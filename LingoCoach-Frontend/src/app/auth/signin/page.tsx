@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { authAPI } from '@/lib/api'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useAuthStore } from '@/stores/authStore'
 import { Eye, EyeOff, LogIn, Languages } from 'lucide-react'
 
@@ -34,8 +35,16 @@ export default function SignIn() {
     try {
       const response = await authAPI.login({ email: email.trim().toLowerCase(), password })
       const { token, refreshToken, user } = response.data
+      
+      // Set authentication state
       setAuth(token, refreshToken, user)
+      
+      // Force a small delay to ensure state is persisted
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Redirect to dashboard
       router.push('/dashboard')
+      router.refresh()
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to sign in. Please check your credentials.')
     } finally {
@@ -48,10 +57,10 @@ export default function SignIn() {
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 shadow-lg shadow-blue-600/30 mb-4">
-            <Languages className="h-8 w-8 text-white" />
+          <div className="inline-flex flex-col items-center mb-4">
+            <Image src="/logo.png" alt="DiburAI" width={64} height={64} className="rounded-2xl shadow-lg shadow-blue-600/30 mb-4" />
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">DiburAI</h1>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">LingoCoach</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">Welcome back</p>
         </div>
 
