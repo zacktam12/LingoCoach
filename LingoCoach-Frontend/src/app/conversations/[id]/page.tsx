@@ -3,13 +3,16 @@
 import { useState, useEffect, useRef } from 'react'
 import { conversationAPI } from '@/lib/api'
 import { useRouter } from 'next/navigation'
-import { Send, Bot, User, Mic, Phone, PhoneOff, Headphones } from 'lucide-react'
+import { Send, Bot, User, Mic, Phone, PhoneOff, Headphones, MessageCircle } from 'lucide-react'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import { cn } from '@/lib/utils'
 import { Spinner } from '@/components/ui/spinner'
 import { io, Socket } from 'socket.io-client'
 import SpeechSynthesis from '@/components/SpeechSynthesis'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+import { getFullLangCode } from '@/components/SpeechSynthesis'
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 export default function ConversationDetail({ params }: { params: { id: string } }) {
   const [conversation, setConversation] = useState<any>(null)
@@ -64,7 +67,7 @@ export default function ConversationDetail({ params }: { params: { id: string } 
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(text)
     const lang = conversationRef.current?.language || 'en'
-    utterance.lang = lang === 'en' ? 'en-US' : (lang === 'es' ? 'es-ES' : lang)
+    utterance.lang = getFullLangCode(lang)
     utterance.rate = 0.95
     utterance.onend = () => {
       // Once AI finishes speaking, auto-start microphone if still in voice mode
@@ -390,159 +393,209 @@ export default function ConversationDetail({ params }: { params: { id: string } 
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <div className="bg-card rounded-xl shadow-lg overflow-hidden flex flex-col h-[calc(100vh-200px)]">
-            {/* Header */}
-            <div className="border-b border-border p-4 flex justify-between items-center bg-card">
-              <div>
-                <h1 className="text-xl font-bold text-foreground">
-                  {conversation?.title || `Conversation in ${conversation?.language || 'English'}`}
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  Level: {conversation?.level || 'Beginner'}
-                </p>
-              </div>
-              <button 
-                onClick={() => setIsVoiceMode(!isVoiceMode)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full font-semibold transition-all shadow-md ${
-                  isVoiceMode 
-                    ? 'bg-red-500 hover:bg-red-600 text-white animate-[pulse_2s_ease-in-out_infinite]' 
-                    : 'bg-primary/10 text-primary hover:bg-primary/20'
-                }`}
-              >
-                {isVoiceMode ? <PhoneOff className="h-4 w-4" /> : <Phone className="h-4 w-4" />}
-                {isVoiceMode ? "End Call Mode" : "Hands-Free"}
-              </button>
+      <div className="flex flex-col h-screen max-h-screen bg-background overflow-hidden relative">
+        {/* Header */}
+        <header className="flex-shrink-0 border-b border-border bg-background/80 backdrop-blur-md z-10 px-6 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex w-10 h-10 rounded-full gemini-gradient items-center justify-center text-white shadow-md">
+              <Bot size={24} />
             </div>
-
-            {isVoiceMode && (
-              <div className="bg-primary/5 border-b border-primary/20 p-2 text-center flex items-center justify-center gap-2 text-primary font-medium text-sm">
-                <Headphones className="h-4 w-4 animate-bounce" />
-                Hands-free voice call active. I am listening...
-              </div>
-            )}
-
-            {aiUnavailable && (
-              <div className="bg-amber-50 text-amber-800 text-xs px-4 py-2 border-b border-amber-200">
-                AI tutor is temporarily unavailable. You can still practice by writing messages; responses may be limited.
-              </div>
-            )}
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4">
-              <div className="space-y-4">
-                {messages.map((message) => (
-                  <div
-                    key={message.id || message.timestamp}
-                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[80%] rounded-lg p-4 ${
-                        message.role === 'user'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-secondary text-secondary-foreground'
-                      }`}
-                    >
-                      <div className="flex items-center mb-1">
-                        {message.role === 'assistant' ? (
-                          <Bot className="h-4 w-4 mr-2" />
-                        ) : (
-                          <User className="h-4 w-4 mr-2" />
-                        )}
-                        <span className="text-xs font-medium">
-                          {message.role === 'user' ? 'You' : 'AI Tutor'}
-                        </span>
-                      </div>
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="whitespace-pre-wrap flex-1">{message.content}</p>
-                        {message.role === 'assistant' && (
-                          <div className="flex-shrink-0">
-                            <SpeechSynthesis text={message.content} language={conversation?.language || 'en'} />
-                          </div>
-                        )}
-                      </div>
-                      
-                      {message.suggestions && message.suggestions.length > 0 && (
-                        <div className="mt-2 pt-2 border-t border-border/50">
-                          <p className="text-xs font-medium mb-1">Suggestions:</p>
-                          <ul className="text-xs list-disc pl-4 space-y-1">
-                            {message.suggestions.map((suggestion: string, index: number) => (
-                              <li key={index}>{suggestion}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                
-                {/* Typing Indicators */}
-                {typingUsers.length > 0 && (
-                  <div className="flex justify-start">
-                    <div className="max-w-[80%] rounded-lg p-3 bg-secondary text-secondary-foreground">
-                      <div className="flex items-center">
-                        <Bot className="h-4 w-4 mr-2" />
-                        <span className="text-xs font-medium">AI Tutor</span>
-                      </div>
-                      <div className="flex items-center mt-1">
-                        <div className="flex space-x-1">
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-                        </div>
-                        <span className="ml-2 text-sm">is typing...</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                <div ref={messagesEndRef} />
+            <div>
+              <h1 className="text-lg font-semibold text-foreground leading-tight">
+                {conversation?.title || `Conversation in ${conversation?.language || 'English'}`}
+              </h1>
+              <div className="flex items-center gap-2">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                  {conversation?.language?.toUpperCase() || 'EN'}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {conversation?.level || 'Beginner'} Level
+                </span>
               </div>
             </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsVoiceMode(!isVoiceMode)}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-2xl font-medium transition-all shadow-sm border",
+                isVoiceMode 
+                  ? 'bg-red-500 border-red-600 text-white animate-pulse' 
+                  : 'bg-card border-border text-foreground hover:bg-accent'
+              )}
+            >
+              {isVoiceMode ? <PhoneOff size={18} /> : <Phone size={18} />}
+              <span className="hidden sm:inline">{isVoiceMode ? "End Voice" : "Voice Mode"}</span>
+            </button>
+          </div>
+        </header>
 
-            {/* Input */}
-            <div className="border-t border-border p-4 bg-card/50">
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={toggleRecording}
-                  className={`p-3 rounded-full flex-shrink-0 flex items-center justify-center transition-all ${
-                    isRecording 
-                      ? 'bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/30' 
-                      : 'bg-secondary text-foreground hover:bg-primary/10 hover:text-primary'
-                  }`}
-                  title={isRecording ? "Stop recording (Speak now)" : "Start speaking"}
-                >
-                  <Mic className="h-5 w-5" />
-                </button>
-                <div className="flex flex-1 items-center bg-background rounded-2xl overflow-hidden border border-border shadow-sm focus-within:ring-2 focus-within:ring-primary/20">
-                  <textarea
-                    value={newMessage}
-                    onChange={(e) => {
-                      setNewMessage(e.target.value)
-                      handleTyping()
-                    }}
-                    onKeyPress={handleKeyPress}
-                    placeholder={isRecording ? "Listening..." : "Type your message..."}
-                    className="flex-1 px-4 py-3 bg-transparent focus:outline-none resize-none"
-                    rows={1}
-                    disabled={sending}
-                  />
-                  <button
-                    onClick={sendMessage}
-                    disabled={sending || !newMessage.trim()}
-                    className="bg-primary text-primary-foreground h-full px-6 py-3 hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center transition-colors"
-                  >
-                    {sending ? (
-                      <Spinner className="h-5 w-5" />
-                    ) : (
-                      <Send className="h-5 w-5" />
-                    )}
-                  </button>
+        {isVoiceMode && (
+          <div className="flex-shrink-0 bg-primary/10 border-b border-primary/20 p-3 text-center flex items-center justify-center gap-3 text-primary font-medium text-sm animate-fade-in">
+            <div className="flex gap-1">
+              {[0.1, 0.3, 0.5, 0.7].map((delay) => (
+                <div 
+                  key={delay}
+                  className="w-1 h-4 bg-primary rounded-full animate-bounce" 
+                  style={{ animationDelay: `${delay}s` }}
+                />
+              ))}
+            </div>
+            Hands-free mode active. Just speak, I'm listening.
+          </div>
+        )}
+
+        {/* Messages area */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth">
+          <div className="max-w-4xl mx-auto px-4 py-10 space-y-8">
+            {messages.length === 0 && !loading && (
+              <div className="flex flex-col items-center justify-center py-20 text-center space-y-6">
+                <div className="w-20 h-20 rounded-3xl gemini-gradient flex items-center justify-center text-white shadow-2xl animate-bounce">
+                  <MessageCircle size={40} />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold">How can I help you today?</h2>
+                  <p className="text-muted-foreground mt-2 max-w-md">
+                    I'm your AI Language Coach. We can practice speaking, grammar, or just have a friendly chat in {conversation?.language || 'English'}.
+                  </p>
                 </div>
               </div>
+            )}
+
+            {messages.map((message, index) => (
+              <div
+                key={message.id || index}
+                className={cn(
+                  "flex flex-col gap-2 group animate-fade-in",
+                  message.role === 'user' ? "items-end" : "items-start"
+                )}
+              >
+                <div className={cn(
+                  "flex gap-3 max-w-[85%] md:max-w-[75%]",
+                  message.role === 'user' ? "flex-row-reverse" : "flex-row"
+                )}>
+                  <div className={cn(
+                    "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center shadow-sm mt-1",
+                    message.role === 'user' ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
+                  )}>
+                    {message.role === 'user' ? <User size={16} /> : <Bot size={16} />}
+                  </div>
+                  
+                  <div className={cn(
+                    "flex flex-col gap-2",
+                    message.role === 'user' ? "items-end" : "items-start"
+                  )}>
+                    <div className={cn(
+                      "px-5 py-3.5 shadow-sm text-[15px] leading-relaxed",
+                      message.role === 'user' 
+                        ? "bg-primary text-primary-foreground rounded-[1.5rem] rounded-tr-none" 
+                        : "bg-card text-card-foreground border border-border rounded-[1.5rem] rounded-tl-none"
+                    )}>
+                      <p className="whitespace-pre-wrap">{message.content}</p>
+                    </div>
+
+                    {message.role === 'assistant' && (
+                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity px-1">
+                        <SpeechSynthesis text={message.content} language={conversation?.language || 'en'} />
+                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+                          AI Tutor
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Suggestions and Corrections */}
+                {message.role === 'assistant' && message.suggestions && message.suggestions.length > 0 && (
+                  <div className="ml-11 flex flex-wrap gap-2 mt-1">
+                    {message.suggestions.map((suggestion: string, i: number) => (
+                      <button 
+                        key={i}
+                        onClick={() => setNewMessage(suggestion)}
+                        className="text-xs px-3 py-1.5 rounded-full bg-primary/5 hover:bg-primary/10 text-primary border border-primary/10 transition-colors"
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+            
+            {/* Typing Indicator */}
+            {typingUsers.length > 0 && (
+              <div className="flex items-start gap-3 animate-fade-in">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+                  <Bot size={16} className="text-secondary-foreground" />
+                </div>
+                <div className="px-5 py-3.5 bg-card border border-border rounded-[1.5rem] rounded-tl-none flex items-center gap-2 shadow-sm">
+                  <div className="flex gap-1">
+                    <div className="w-1.5 h-1.5 bg-muted-foreground/40 rounded-full animate-bounce" />
+                    <div className="w-1.5 h-1.5 bg-muted-foreground/40 rounded-full animate-bounce [animation-delay:0.2s]" />
+                    <div className="w-1.5 h-1.5 bg-muted-foreground/40 rounded-full animate-bounce [animation-delay:0.4s]" />
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div ref={messagesEndRef} className="h-4" />
+          </div>
+        </div>
+
+        {/* Input Area */}
+        <div className="flex-shrink-0 border-t border-border bg-background/80 backdrop-blur-lg px-4 py-6 md:pb-8">
+          <div className="max-w-4xl mx-auto relative">
+            {aiUnavailable && (
+              <div className="absolute -top-12 left-0 right-0 mx-auto w-fit px-4 py-1.5 bg-amber-500/10 text-amber-600 text-xs font-medium rounded-full border border-amber-500/20 mb-4 animate-fade-in">
+                AI tutor is temporarily limited. I'll still help as much as I can!
+              </div>
+            )}
+
+            <div className="flex items-end gap-2 md:gap-4">
+              <button
+                type="button"
+                onClick={toggleRecording}
+                className={cn(
+                  "flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-md",
+                  isRecording 
+                    ? 'bg-red-500 text-white animate-pulse shadow-red-500/20' 
+                    : 'bg-secondary text-foreground hover:bg-primary hover:text-white'
+                )}
+              >
+                <Mic size={20} />
+              </button>
+
+              <div className="flex-1 relative group">
+                <textarea
+                  value={newMessage}
+                  onChange={(e) => {
+                    setNewMessage(e.target.value)
+                    handleTyping()
+                  }}
+                  onKeyPress={handleKeyPress}
+                  placeholder={isRecording ? "Listening to you..." : "Message LingoCoach..."}
+                  className="w-full bg-card border border-border rounded-2xl md:rounded-[2rem] px-5 py-3.5 md:py-4 pr-14 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm resize-none max-h-32 overflow-y-auto"
+                  rows={1}
+                  disabled={sending}
+                />
+                <button
+                  onClick={() => sendMessage()}
+                  disabled={sending || !newMessage.trim()}
+                  className="absolute right-2 bottom-2 w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 disabled:opacity-30 disabled:hover:bg-primary transition-all"
+                >
+                  {sending ? (
+                    <Spinner className="w-5 h-5 border-2 border-white/30 border-t-white" />
+                  ) : (
+                    <Send size={18} />
+                  )}
+                </button>
+              </div>
             </div>
+            
+            <p className="text-[10px] text-center text-muted-foreground mt-3">
+              LingoCoach can make mistakes. Consider checking important grammar rules.
+            </p>
           </div>
         </div>
       </div>
