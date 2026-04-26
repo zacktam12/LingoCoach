@@ -27,6 +27,7 @@ const languageMap: Record<string, string> = {
 
 export default function VoiceAssistant() {
   const recognitionRef = useRef<any>(null)
+  const controlsTimerRef = useRef<number | null>(null)
   const shouldKeepListeningRef = useRef(false)
   const startListeningRef = useRef<() => void>(() => undefined)
   const audioContextRef = useRef<AudioContext | null>(null)
@@ -41,6 +42,7 @@ export default function VoiceAssistant() {
   const [speechSupported, setSpeechSupported] = useState(false)
   const [isContinuousMode, setIsContinuousMode] = useState(true)
   const [audioLevel, setAudioLevel] = useState(0)
+  const [controlsVisible, setControlsVisible] = useState(true)
 
   const { isAuthenticated } = useAuthStore()
   const { targetLanguage, learningLevel } = usePreferencesStore()
@@ -60,6 +62,9 @@ export default function VoiceAssistant() {
 
   useEffect(() => {
     return () => {
+      if (controlsTimerRef.current) {
+        window.clearTimeout(controlsTimerRef.current)
+      }
       stopListening()
       stopAudioVisualizer()
       window.speechSynthesis?.cancel()
@@ -79,10 +84,25 @@ export default function VoiceAssistant() {
 
   const openOverlay = () => {
     setIsOpen(true)
+    setControlsVisible(true)
     setError(null)
     setAssistantReply('')
     setTranscript('')
     setAssistantState('idle')
+  }
+
+  const scheduleControlsHide = () => {
+    if (controlsTimerRef.current) {
+      window.clearTimeout(controlsTimerRef.current)
+    }
+    controlsTimerRef.current = window.setTimeout(() => {
+      setControlsVisible(false)
+    }, 1800)
+  }
+
+  const revealControls = () => {
+    setControlsVisible(true)
+    scheduleControlsHide()
   }
 
   const stopAudioVisualizer = () => {
@@ -139,6 +159,9 @@ export default function VoiceAssistant() {
 
   const closeOverlay = () => {
     shouldKeepListeningRef.current = false
+    if (controlsTimerRef.current) {
+      window.clearTimeout(controlsTimerRef.current)
+    }
     stopListening()
     window.speechSynthesis?.cancel()
     setIsOpen(false)
@@ -278,10 +301,11 @@ export default function VoiceAssistant() {
     <>
       <button
         onClick={openOverlay}
-        className="fixed bottom-6 right-6 z-[60] group flex items-center gap-3 rounded-full px-5 py-3 bg-primary text-primary-foreground shadow-xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all"
+        className="fixed bottom-6 right-6 z-[60] w-12 h-12 rounded-full bg-primary/80 text-primary-foreground shadow-[0_0_26px_rgba(59,130,246,0.65)] backdrop-blur-md border border-white/25 hover:scale-110 active:scale-95 transition-all animate-pulse-slow flex items-center justify-center"
+        title="Open voice assistant"
       >
-        <Mic size={18} />
-        <span className="text-sm font-bold tracking-wide hidden sm:inline">Talk to DiburAI</span>
+        <span className="absolute inset-0 rounded-full bg-primary/35 blur-md" />
+        <Mic size={16} className="relative z-10" />
       </button>
 
       <AnimatePresence>
@@ -291,8 +315,16 @@ export default function VoiceAssistant() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-xl"
+            onMouseMove={revealControls}
+            onTouchStart={revealControls}
+            onClick={revealControls}
           >
-            <div className="absolute top-5 right-5 flex items-center gap-2">
+            <div
+              className={cn(
+                'absolute top-5 right-5 flex items-center gap-2 transition-opacity duration-300',
+                controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              )}
+            >
               <button
                 onClick={closeOverlay}
                 className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
@@ -304,6 +336,8 @@ export default function VoiceAssistant() {
 
             <div className="h-full w-full flex flex-col items-center justify-center px-6 text-center text-white">
               <div className="relative mb-8">
+                <div className="pointer-events-none absolute left-1/2 top-1/2 w-[520px] h-28 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-sky-500/0 via-sky-400/35 to-indigo-500/0 blur-3xl rotate-[-16deg]" />
+                <div className="pointer-events-none absolute left-1/2 top-1/2 w-[460px] h-24 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-indigo-500/0 via-violet-400/30 to-indigo-500/0 blur-3xl rotate-[14deg]" />
                 <div className="assistant-wave assistant-wave-1" />
                 <div className="assistant-wave assistant-wave-2" />
                 <div className="assistant-wave assistant-wave-3" />
@@ -324,7 +358,12 @@ export default function VoiceAssistant() {
 
               <p className="mb-8 text-sm uppercase tracking-[0.25em] text-white/60 font-semibold">{stateLabel}</p>
 
-              <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
+              <div
+                className={cn(
+                  'mt-2 flex flex-wrap items-center justify-center gap-3 transition-opacity duration-300',
+                  controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                )}
+              >
                 <button
                   onClick={() => setIsContinuousMode((prev) => !prev)}
                   className={cn(
