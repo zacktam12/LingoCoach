@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 214 45% 96%;
+    --foreground: 224 71.4% 4.1%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 71.4% 4.1%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71.4% 4.1%;
+    --primary: 217 89% 61%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 214 45% 90%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 214 45% 92%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 217 89% 61% / 0.1;
+    --accent-foreground: 217 89% 61%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 217 89% 61%;
+    --radius: 1.5rem;
+  }
+
+  .dark {
+    --background: 224 25% 6%;
+    --foreground: 210 40% 98%;
+    --card: 224 25% 10%;
+    --card-foreground: 210 40% 98%;
+    --popover: 224 25% 10%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 224 25% 15%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 224 25% 15%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217 91% 60% / 0.15;
+    --accent-foreground: 217 91% 60%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 224 25% 15%;
+    --input: 224 25% 15%;
+    --ring: 217 91% 60%;
+  }
+}
+
+@layer components {
+  .gemini-gradient {
+    @apply bg-primary;
+  }
+  
+  .glass-card {
+    @apply bg-white/70 dark:bg-black/40 backdrop-blur-md border border-white/20 dark:border-white/10 shadow-xl;
+  }
+
+  .chat-bubble-user {
+    @apply bg-primary text-primary-foreground rounded-[1.5rem] rounded-tr-none px-4 py-2 max-w-[85%];
+  }
+
+  .chat-bubble-ai {
+    @apply bg-secondary text-secondary-foreground rounded-[1.5rem] rounded-tl-none px-4 py-2 max-w-[85%];
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+@layer utilities {
+  .animate-bounce-slow {
+    animation: bounce-slow 4s infinite;
+  }
+  .animate-pulse-slow {
+    animation: pulse-slow 6s infinite;
+  }
+  .assistant-wave {
+    @apply absolute rounded-full border border-white/30;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .assistant-wave-1 {
+    width: 180px;
+    height: 180px;
+    animation: assistant-wave 2.6s infinite ease-out;
+  }
+  .assistant-wave-2 {
+    width: 230px;
+    height: 230px;
+    animation: assistant-wave 2.6s infinite ease-out 0.7s;
+  }
+  .assistant-wave-3 {
+    width: 280px;
+    height: 280px;
+    animation: assistant-wave 2.6s infinite ease-out 1.2s;
+  }
+}
+
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.05); }
+}
+
+@keyframes assistant-wave {
+  0% {
+    opacity: 0.5;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  70% {
+    opacity: 0.15;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+}
